@@ -1,13 +1,39 @@
 "use client";
 
 import type { Activity } from "~/lib/pb";
-import { formatDate, isExpired } from "~/lib/utils";
+import { Dialog } from "~/components/ui/dialog";
+import { activityService } from "~/services/activity";
+import { formatDate } from "~/lib/utils";
 
-interface ActivityListProps {
+interface ManageActivityListProps {
   activities: Activity[];
+  onDeleted?: () => void;
 }
 
-export function ActivityList({ activities }: ActivityListProps) {
+export function ManageActivityList({
+  activities,
+  onDeleted,
+}: ManageActivityListProps) {
+  const handleDelete = async (activity: Activity) => {
+    const confirmed = await Dialog.confirm(
+      "确认删除",
+      `确定要删除活动"${activity.title}"吗？此操作不可恢复。`,
+    );
+
+    if (confirmed) {
+      try {
+        await activityService.deleteActivity(activity.id);
+        await Dialog.success("删除成功", "活动已被删除");
+        onDeleted?.();
+      } catch (error) {
+        await Dialog.error(
+          "删除失败",
+          error instanceof Error ? error.message : "未知错误",
+        );
+      }
+    }
+  };
+
   return (
     <div
       data-testid="activity-list"
@@ -32,27 +58,19 @@ export function ActivityList({ activities }: ActivityListProps) {
                 <span>👥 中签名额: {activity.winnersCount}人</span>
               </p>
               <div className="ml-auto flex gap-2">
+                <button
+                  className="btn btn-sm btn-error"
+                  onClick={() => void handleDelete(activity)}
+                  data-testid={`delete-activity-${activity.id}`}
+                >
+                  删除
+                </button>
                 <a
-                  href={`/activity/${activity.id}/result`}
+                  href={`/admin/${activity.id}`}
                   className="btn btn-sm btn-ghost"
                 >
-                  查看报名
+                  编辑
                 </a>
-                {isExpired(activity.deadline) ? (
-                  <a
-                    href={`/activity/${activity.id}/result`}
-                    className="btn btn-sm btn-ghost"
-                  >
-                    查看结果
-                  </a>
-                ) : (
-                  <a
-                    href={`/activity/${activity.id}/register`}
-                    className="btn btn-sm btn-primary"
-                  >
-                    立即报名
-                  </a>
-                )}
               </div>
             </div>
           </div>

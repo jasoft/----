@@ -5,7 +5,6 @@ import type { Model, PocketBaseResponse } from "~/lib/pb";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Dialog } from "~/components/ui/dialog";
 
@@ -151,9 +150,13 @@ export function RegistrationForm({
         )}
       </div>
 
-      <Button type="submit" disabled={isSubmitting} className="w-full">
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="btn btn-primary w-full"
+      >
         {isSubmitting ? "提交中..." : "提交报名"}
-      </Button>
+      </button>
     </form>
   );
 }

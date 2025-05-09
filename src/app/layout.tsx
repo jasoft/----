@@ -15,8 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
-      <body>
+    <html lang="zh-CN" data-theme="light">
+      <body className="bg-background min-h-screen">
         <div className="flex min-h-screen flex-col">
           <Nav />
           <div className="flex-1">{children}</div>

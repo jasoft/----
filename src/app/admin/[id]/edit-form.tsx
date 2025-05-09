@@ -16,7 +16,6 @@ interface AdminAuthResponse {
 }
 
 import { ActivityForm } from "~/components/forms/activity-form";
-import { Button } from "~/components/ui/button";
 
 interface EditActivityFormProps {
   activity: Activity;
@@ -121,17 +120,20 @@ export function EditActivityForm({ activity }: EditActivityFormProps) {
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold">编辑活动</h1>
         <div className="flex gap-4">
-          <Button onClick={() => router.push("/admin")} variant="outline">
+          <button
+            onClick={() => router.push("/admin")}
+            className="btn btn-ghost"
+          >
             返回
-          </Button>
-          <Button
+          </button>
+          <button
             data-testid="delete-activity"
             onClick={handleDelete}
-            variant="destructive"
+            className="btn btn-error"
             disabled={isDeleting}
           >
             {isDeleting ? "删除中..." : "删除活动"}
-          </Button>
+          </button>
         </div>
       </div>
 

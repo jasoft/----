@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { cn } from "~/lib/utils";
-import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 
 const activitySchema = z.object({
@@ -182,9 +181,13 @@ export function ActivityForm({
         </p>
       </div>
 
-      <Button type="submit" disabled={isSubmitting} className="w-full">
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="btn btn-primary w-full"
+      >
         {isSubmitting ? "提交中..." : "提交"}
-      </Button>
+      </button>
     </form>
   );
 }

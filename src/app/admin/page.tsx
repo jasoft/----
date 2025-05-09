@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { type Activity } from "~/lib/pb";
-import { Button } from "~/components/ui/button";
-import { ActivityList } from "~/components/activity-list";
+import { ManageActivityList } from "~/components/manage-activity-list";
 
 interface PocketBaseListResponse {
   page: number;
@@ -51,9 +51,9 @@ export default function AdminPage() {
     <main className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold">活动管理</h1>
-        <Button asChild>
-          <a href="/admin/new">创建活动</a>
-        </Button>
+        <Link href="/admin/new" className="btn btn-primary">
+          创建活动
+        </Link>
       </div>
 
       {activities.length === 0 ? (
@@ -64,7 +64,10 @@ export default function AdminPage() {
           </p>
         </div>
       ) : (
-        <ActivityList activities={activities} onDeleted={loadActivities} />
+        <ManageActivityList
+          activities={activities}
+          onDeleted={loadActivities}
+        />
       )}
     </main>
   );
