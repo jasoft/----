@@ -1,8 +1,24 @@
-# 报名抽签系统设计文档
+# 报名抽签系统
 
-## 项目概述
+一个基于Next.js和PocketBase的活动报名抽签系统。管理员可以创建活动并设定中签人数，用户无需注册即可报名参加活动，系统在截止时间后自动随机抽取指定数量的中签用户。
 
-一个基于 Next.js 和 PocketBase 的活动报名抽签系统。管理员可以创建活动并设定中签人数，用户无需注册即可报名参加活动，系统在截止时间后自动随机抽取指定数量的中签用户。
+## 功能特点
+
+1. 管理员功能
+   - 创建和管理活动
+   - 设置活动标题、内容、截止时间和中签人数
+   - GitHub账号登录验证
+
+2. 用户功能
+   - 浏览活动列表
+   - 报名参加活动（无需注册）
+   - 上传照片
+   - 查看抽签结果
+
+3. 系统功能
+   - 自动抽签
+   - 结果展示
+   - 文件存储
 
 ## 技术栈
 
@@ -13,7 +29,6 @@
   - Zustand (状态管理)
   - React Hook Form (表单处理)
   - Zod (数据验证)
-  - PocketBase SDK (数据操作)
 
 - **后端**:
   - PocketBase (后端服务)
@@ -22,192 +37,127 @@
     - 认证授权
     - API访问
 
-## 系统架构
+## 快速开始
 
-```mermaid
-graph TB
-    subgraph Frontend
-        A[Next.js Pages] --> B[组件 Components]
-        B --> C[UI - Tailwind CSS]
-        A --> D[状态管理 Zustand]
-        A --> E[PocketBase SDK]
-    end
+### 环境要求
 
-    subgraph Backend
-        F[PocketBase] --> G[SQLite]
-        F --> H[文件存储]
-        F --> I[认证]
-        F --> J[REST API]
-    end
+- Node.js 18+
+- PowerShell 7+
+- Git
 
-    A <--> F
+### 安装步骤
+
+1. 克隆项目
+```bash
+git clone <repository-url>
+cd 报名抽签
 ```
 
-## 数据模型
-
-### Activity (活动)
-
-```typescript
-interface Activity {
-  id: string;
-  title: string;        // 活动标题
-  content: string;      // 活动内容
-  deadline: Date;       // 截止时间
-  winnersCount: number; // 中签人数
-  createdAt: Date;      // 创建时间
-  updatedAt: Date;      // 更新时间
-}
+2. 启动开发环境
+```bash
+pwsh ./start-dev.ps1
 ```
 
-### Registration (报名)
+这个脚本会：
+- 创建必要的环境变量文件
+- 安装项目依赖
+- 下载并启动PocketBase服务
+- 启动Next.js开发服务器
 
-```typescript
-interface Registration {
-  id: string;
-  activityId: string;   // 关联活动ID
-  name: string;         // 报名者姓名
-  photo: string;        // 照片URL
-  isWinner: boolean;    // 是否中签
-  createdAt: Date;      // 报名时间
-}
-```
+3. 配置GitHub OAuth
 
-## 项目结构
+访问 https://github.com/settings/developers：
+- 创建新的OAuth应用
+- 设置Homepage URL为 `http://localhost:3000`
+- 设置Authorization callback URL为 `http://localhost:3000/api/auth/callback/github`
+- 复制Client ID和Client Secret到.env文件中的相应位置
+
+4. 配置PocketBase
+
+访问 `http://127.0.0.1:8090/_/`：
+- 创建管理员账号
+- 创建两个集合：activities和registrations
+- 设置适当的访问权限
+
+### 目录结构
 
 ```
 src/
   ├── app/          # App Router
   │   ├── admin/    # 管理员路由
-  │   │   ├── page.tsx           # 活动列表
-  │   │   ├── new/page.tsx       # 创建活动
-  │   │   └── [id]/page.tsx      # 活动详情/编辑
   │   ├── api/      # API 路由
-  │   │   └── draw/[id]/route.ts # 抽签API
-  │   └── page.tsx  # 首页(活动列表)
+  │   └── page.tsx  # 首页
   ├── components/   # UI组件
   │   ├── ui/       # 基础UI组件
-  │   │   ├── button.tsx
-  │   │   ├── input.tsx
-  │   │   └── card.tsx
   │   └── forms/    # 表单组件
-  │       ├── activity-form.tsx
-  │       └── registration-form.tsx
   ├── lib/          # 工具函数
-  │   ├── pb.ts     # PocketBase客户端
-  │   └── utils.ts  # 通用工具
-  ├── styles/       # 全局样式
   └── types/        # 类型定义
 ```
 
-## 功能实现
+## 使用说明
 
-### 1. 管理员功能
+1. 管理员
+   - 访问 `/admin` 登录（使用GitHub账号）
+   - 创建新活动
+   - 查看报名情况
+   - 管理活动信息
 
-- 创建活动
-  - 设置活动标题、内容
-  - 设置报名截止时间
-  - 设置中签人数
+2. 用户
+   - 访问首页浏览活动列表
+   - 点击活动进入详情页
+   - 填写姓名并上传照片报名
+   - 在截止时间后查看抽签结果
 
-- 管理活动
-  - 查看活动列表
-  - 编辑活动信息
-  - 查看报名情况
+## 开发
 
-### 2. 用户功能
+### 可用的命令
 
-- 浏览活动
-  - 查看活动列表
-  - 查看活动详情
+```bash
+# 启动开发环境（包含前后端）
+pwsh ./start-dev.ps1
 
-- 活动报名
-  - 填写姓名
-  - 上传照片
+# 仅启动PocketBase服务
+pwsh ./start-server.ps1
 
-- 查看结果
-  - 显示是否中签
-  - 查看其他中签者
+# 仅启动前端开发服务器
+npm run dev
 
-### 3. 系统功能
+# 构建项目
+npm run build
 
-- 自动抽签
-  - 在截止时间后自动执行
-  - 随机抽取指定人数
-  - 更新中签状态
+# 运行生产环境
+npm start
+```
 
-- 结果展示
-  - 展示所有中签者
-  - 提供查询接口
+### 环境变量
 
-## 页面路由
+项目使用以下环境变量：
 
-1. `/` - 首页，展示活动列表
-2. `/activity/[id]` - 活动详情页
-3. `/activity/[id]/register` - 报名页面
-4. `/activity/[id]/result` - 抽签结果页
-5. `/admin` - 管理员活动列表
-6. `/admin/new` - 创建新活动
-7. `/admin/[id]` - 管理员活动详情/编辑
+```env
+# PocketBase URL
+NEXT_PUBLIC_POCKETBASE_URL="http://127.0.0.1:8090"
 
-## 部署计划
+# Next Auth
+AUTH_SECRET="your-secret-key"
 
-1. 后端部署
-   - 准备服务器环境
-   - 部署PocketBase服务
-   - 配置域名和SSL
+# GitHub OAuth
+AUTH_GITHUB_ID="your-github-client-id"
+AUTH_GITHUB_SECRET="your-github-client-secret"
+```
 
-2. 前端部署
-   - 使用Vercel部署Next.js应用
-   - 配置环境变量
-   - 设置自定义域名
+## 部署
 
-## 安全考虑
+1. 构建前端
+```bash
+npm run build
+```
 
-1. 管理员认证
-   - 使用PocketBase内置的认证系统
-   - 实现基于角色的访问控制
+2. 部署PocketBase
+- 下载对应系统的PocketBase版本
+- 配置服务器环境
+- 设置域名和SSL
 
-2. 文件上传
-   - 限制文件大小和类型
-   - 使用PocketBase的安全存储
-
-3. API安全
-   - 实现速率限制
-   - 验证请求来源
-   - 防止重复提交
-
-## 开发计划
-
-1. 环境搭建 (1天)
-   - 创建项目
-   - 配置开发环境
-   - 设置PocketBase
-
-2. 基础功能开发 (3天)
-   - 实现数据模型
-   - 开发基础UI组件
-   - 集成PocketBase SDK
-
-3. 管理员功能 (2天)
-   - 活动管理CRUD
-   - 管理界面开发
-   - 权限控制
-
-4. 用户功能 (2天)
-   - 报名流程
-   - 文件上传
-   - 结果查询
-
-5. 抽签系统 (1天)
-   - 随机算法
-   - 自动触发
-   - 结果通知
-
-6. 测试和优化 (2天)
-   - 单元测试
-   - E2E测试
-   - 性能优化
-
-7. 部署上线 (1天)
-   - 服务器部署
-   - 域名配置
-   - 监控设置
+3. 部署Next.js应用
+- 推荐使用Vercel
+- 设置环境变量
+- 配置域名
