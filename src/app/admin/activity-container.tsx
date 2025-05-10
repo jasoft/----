@@ -2,10 +2,18 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 import type { Activity } from "~/lib/pb";
 import { ActivityForm } from "~/components/forms/activity-form";
 import { Dialog } from "~/components/ui/dialog";
 import { activityService } from "~/services/activity";
+
+// 配置dayjs使用时区
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Shanghai");
 
 interface ActivityContainerProps {
   mode: "create" | "edit";
@@ -20,10 +28,16 @@ export function ActivityContainer({
 }: ActivityContainerProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = useCallback(
-    async (data: Omit<Activity, "id" | "created" | "updated">) => {
+    async (data: {
+      title: string;
+      content: string;
+      deadline: string;
+      winnersCount: number;
+    }) => {
       setIsSubmitting(true);
       setError(null);
 
@@ -35,23 +49,25 @@ export function ActivityContainer({
             `您设置的中签人数为 ${data.winnersCount} 人，这可能会影响活动质量。确定要继续吗？`,
           );
           if (!confirmed) {
+            setIsSubmitting(false);
             return;
           }
         }
 
+        // 将时间转换为UTC时区
+        const deadline = dayjs(data.deadline).tz().utc().format();
+        const submitData = {
+          ...data,
+          deadline,
+        };
+
         if (mode === "create") {
-          await activityService.createActivity(data);
+          await activityService.createActivity(submitData);
         } else if (activity?.id) {
-          await activityService.updateActivity(activity.id, data);
+          await activityService.updateActivity(activity.id, submitData);
         }
 
-        // 显示成功提示
-        await Dialog.success(
-          `活动${mode === "create" ? "创建" : "更新"}成功`,
-          `活动"${data.title}"已成功${mode === "create" ? "创建" : "更新"}`,
-        );
-
-        // 重定向到列表页
+        // 直接重定向到列表页
         router.push(redirectUrl);
         router.refresh();
       } catch (err) {
@@ -77,21 +93,77 @@ export function ActivityContainer({
     [mode, activity, redirectUrl, router],
   );
 
+  const handleDelete = async () => {
+    if (!activity?.id) return;
+
+    const confirmed = await Dialog.confirm(
+      "确认删除活动",
+      "此操作将永久删除该活动及其所有相关数据，确定要继续吗？",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      setError(null);
+
+      await activityService.deleteActivity(activity.id);
+      // 删除成功直接跳转
+      router.push(redirectUrl);
+      router.refresh();
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("删除失败，请重试");
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const defaultValues = activity
     ? {
         title: activity.title,
         content: activity.content,
-        deadline: activity.deadline.slice(0, 16), // 转换为datetime-local格式
+        // 将UTC时间转换为本地时间
+        deadline: dayjs(activity.deadline).tz().format("YYYY-MM-DDTHH:mm"),
         winnersCount: activity.winnersCount,
       }
     : undefined;
 
   return (
-    <ActivityForm
-      defaultValues={defaultValues}
-      onSubmit={handleSubmit}
-      isSubmitting={isSubmitting}
-      error={error}
-    />
+    <div>
+      {mode === "edit" && (
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-3xl font-bold">编辑活动</h1>
+          <div className="flex gap-4">
+            <button
+              onClick={() => router.push("/admin")}
+              className="btn btn-ghost"
+            >
+              返回
+            </button>
+            <button
+              data-testid="delete-activity"
+              onClick={handleDelete}
+              className="btn btn-error"
+              disabled={isDeleting}
+            >
+              {isDeleting ? "删除中..." : "删除活动"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ActivityForm
+        defaultValues={defaultValues}
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        error={error}
+      />
+    </div>
   );
 }

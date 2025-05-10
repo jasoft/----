@@ -1,19 +1,22 @@
 {
-  "name": "报名抽签",
+  "name": "whoistheone",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "next build",
     "check": "next lint && tsc --noEmit",
-    "dev": "next dev --turbo",
+    "dev": "next dev --turbo -H 0.0.0.0",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "preview": "next build && next start",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:setup": "cross-env NODE_ENV=test ts-node -T src/scripts/setup-test-admin.ts",
+    "test:e2e": "cross-env NODE_ENV=test playwright test",
+    "test": "npm run test:setup && npm run test:e2e"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -25,6 +28,7 @@
     "@tailwindcss/postcss": "^4.1.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dayjs": "^1.11.13",
     "lucide-react": "^0.508.0",
     "next": "^15.2.3",
     "next-auth": "5.0.0-beta.25",
@@ -40,6 +44,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "cross-env": "^7.0.3",
     "@playwright/test": "^1.52.0",
     "@tailwindcss/forms": "^0.5.10",
     "@types/node": "^20.17.46",

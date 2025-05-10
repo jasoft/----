@@ -1,62 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { Activity } from "~/lib/pb";
-import { formatDate, isExpired } from "~/lib/utils";
+import { ActivityCard } from "./activity-card";
 
 interface ActivityListProps {
   activities: Activity[];
 }
 
 export function ActivityList({ activities }: ActivityListProps) {
+  // 用于强制更新倒计时的状态
+  const [, setTick] = useState(0);
+
+  // 每分钟更新一次倒计时
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div
       data-testid="activity-list"
       className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
     >
       {activities.map((activity) => (
-        <div
-          key={activity.id}
-          data-testid={`activity-${activity.id}`}
-          className="card bg-base-100 shadow-xl"
-        >
-          <div className="card-body">
-            <h2 className="card-title">{activity.title}</h2>
-            <p className="text-sm text-neutral-500">
-              截止时间: {formatDate(activity.deadline)}
-            </p>
-            <p className="line-clamp-3 text-sm text-neutral-600 dark:text-neutral-400">
-              {activity.content}
-            </p>
-            <div className="card-actions flex-wrap items-center">
-              <p className="flex items-center gap-1 text-sm text-neutral-500">
-                <span>👥 中签名额: {activity.winnersCount}人</span>
-              </p>
-              <div className="ml-auto flex gap-2">
-                <a
-                  href={`/activity/${activity.id}/result`}
-                  className="btn btn-sm btn-ghost"
-                >
-                  查看报名
-                </a>
-                {isExpired(activity.deadline) ? (
-                  <a
-                    href={`/activity/${activity.id}/result`}
-                    className="btn btn-sm btn-ghost"
-                  >
-                    查看结果
-                  </a>
-                ) : (
-                  <a
-                    href={`/activity/${activity.id}/register`}
-                    className="btn btn-sm btn-primary"
-                  >
-                    立即报名
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <ActivityCard key={activity.id} activity={activity} />
       ))}
     </div>
   );

@@ -10,92 +10,140 @@ interface PocketBaseListResponse<T> {
   items: T[];
 }
 
+function validateActivityData(data: unknown): Activity {
+  if (!data || typeof data !== "object") {
+    throw new Error("Invalid activity data: data is not an object");
+  }
+
+  const requiredFields = [
+    "id",
+    "created",
+    "updated",
+    "title",
+    "content",
+    "deadline",
+    "winnersCount",
+  ] as const;
+  for (const field of requiredFields) {
+    if (!(field in data)) {
+      throw new Error(
+        `Invalid activity data: missing required field '${field}'`,
+      );
+    }
+  }
+
+  const activity = data as Activity;
+
+  if (
+    typeof activity.title !== "string" ||
+    typeof activity.content !== "string" ||
+    typeof activity.deadline !== "string" ||
+    typeof activity.winnersCount !== "number"
+  ) {
+    throw new Error("Invalid activity data: field type mismatch");
+  }
+
+  return activity;
+}
+
+async function logError(context: string, error: unknown) {
+  console.error(`=== Error in ${context} ===`);
+  if (error instanceof Error) {
+    console.error("Error message:", error.message);
+    console.error("Stack trace:", error.stack);
+    if ("cause" in error && error.cause) {
+      console.error("Error cause:", error.cause);
+    }
+  } else {
+    console.error("Unknown error:", error);
+  }
+  console.error("=== End of error ===\n");
+}
+
 async function getActivity(activityId: string): Promise<Activity | null> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/activities/records/${activityId}`,
-      {
-        cache: "no-store",
-        next: { revalidate: 0 }, // 禁用缓存
-      },
-    );
+    const url = `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/activities/records/${activityId}`;
+    console.log("Fetching activity:", url);
+
+    const res = await fetch(url, {
+      cache: "no-store",
+      next: { revalidate: 0 },
+    });
 
     if (!res.ok) {
-      if (res.status === 404) {
-        return null;
-      }
-      console.error(`获取活动信息失败: ${res.status} ${res.statusText}`);
-      return null;
+      const errorText = await res.text();
+      throw new Error(`HTTP Error ${res.status}: ${errorText}`);
     }
 
-    const data = (await res.json()) as unknown;
+    const rawData: unknown = await res.json();
+    console.log("Raw activity data:", JSON.stringify(rawData, null, 2));
 
-    if (!data || typeof data !== "object" || !("id" in data)) {
-      console.error("获取到的活动数据格式无效");
-      return null;
-    }
-
-    return data as Activity;
+    const activity = validateActivityData(rawData);
+    return activity;
   } catch (error) {
-    console.error("获取活动信息时发生错误:", error);
+    await logError("getActivity", error);
     return null;
   }
 }
 
 async function getRegistrations(activityId: string): Promise<Registration[]> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=(activity="${activityId}")`,
-      {
-        cache: "no-store",
-        next: { revalidate: 0 }, // 禁用缓存
-      },
-    );
+    // 使用正确的字段名 activityId
+    const filter = `(activityId="${activityId}")`;
+    const url = `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=${encodeURIComponent(filter)}`;
+    console.log("Fetching registrations:", url);
+
+    const res = await fetch(url, {
+      cache: "no-store",
+      next: { revalidate: 0 },
+    });
 
     if (!res.ok) {
-      console.error(`获取报名信息失败: ${res.status} ${res.statusText}`);
-      return [];
+      const errorText = await res.text();
+      throw new Error(`HTTP Error ${res.status}: ${errorText}`);
     }
 
     const data = (await res.json()) as PocketBaseListResponse<Registration>;
+    console.log("Registration data:", JSON.stringify(data, null, 2));
 
     if (!data || !Array.isArray(data.items)) {
-      console.error("获取到的报名数据格式无效");
-      return [];
+      throw new Error(`Invalid registrations data: ${JSON.stringify(data)}`);
     }
 
     return data.items;
   } catch (error) {
-    console.error("获取报名信息时发生错误:", error);
+    await logError("getRegistrations", error);
     return [];
   }
 }
 
 async function getWinners(activityId: string): Promise<Registration[]> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=(activity="${activityId}" && isWinner=true)`,
-      {
-        cache: "no-store",
-        next: { revalidate: 0 }, // 禁用缓存
-      },
-    );
+    // 使用正确的字段名 activityId
+    const filter = `(activityId="${activityId}" && isWinner=true)`;
+    const url = `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=${encodeURIComponent(filter)}`;
+    console.log("Fetching winners:", url);
+
+    const res = await fetch(url, {
+      cache: "no-store",
+      next: { revalidate: 0 },
+    });
 
     if (!res.ok) {
-      console.error(`获取中签名单失败: ${res.status} ${res.statusText}`);
-      return [];
+      const errorText = await res.text();
+      throw new Error(`HTTP Error ${res.status}: ${errorText}`);
     }
 
     const data = (await res.json()) as PocketBaseListResponse<Registration>;
+    console.log("Winners data:", JSON.stringify(data, null, 2));
 
     if (!data || !Array.isArray(data.items)) {
-      console.error("获取到的中签数据格式无效");
-      return [];
+      throw new Error(`Invalid winners data: ${JSON.stringify(data)}`);
     }
 
     return data.items;
   } catch (error) {
-    console.error("获取中签名单时发生错误:", error);
+    await logError("getWinners", error);
     return [];
   }
 }
@@ -109,10 +157,12 @@ interface Props {
 export default async function ResultPage({ params }: Props) {
   try {
     const { id } = await params;
+    console.log("Loading result page for activity:", id);
 
     // 获取活动信息
     const activity = await getActivity(id);
     if (!activity) {
+      console.error("Activity not found:", id);
       notFound();
     }
 
@@ -120,6 +170,10 @@ export default async function ResultPage({ params }: Props) {
     const now = new Date();
     const deadline = new Date(activity.deadline);
     const isPending = now < deadline;
+    console.log("Activity status:", {
+      isPending,
+      deadline: deadline.toISOString(),
+    });
 
     // 获取报名和中签信息
     const [registrations, winners] = await Promise.all([
@@ -127,10 +181,11 @@ export default async function ResultPage({ params }: Props) {
       isPending ? Promise.resolve([]) : getWinners(id),
     ]);
 
-    // 如果没有任何报名信息，检查活动是否存在
-    if (!registrations.length) {
-      console.log("当前活动暂无报名信息");
-    }
+    console.log("Page data:", {
+      registrationsCount: registrations.length,
+      winnersCount: winners.length,
+      isPending,
+    });
 
     return (
       <ResultDisplay
@@ -141,7 +196,7 @@ export default async function ResultPage({ params }: Props) {
       />
     );
   } catch (error) {
-    console.error("页面加载时发生错误:", error);
+    await logError("ResultPage", error);
     throw error; // 让 Next.js 错误边界处理
   }
 }

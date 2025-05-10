@@ -1,4 +1,4 @@
-import type { Activity } from "~/lib/pb";
+import type { Activity, ActivityData } from "~/lib/pb";
 import {
   Collections,
   executeAuthenticatedOperation,
@@ -11,7 +11,7 @@ export class ActivityService {
   /**
    * 创建新活动
    */
-  async createActivity(data: Omit<Activity, "id" | "created" | "updated">) {
+  async createActivity(data: ActivityData) {
     return executeAuthenticatedOperation(async () => {
       try {
         const record = await this.pb
@@ -30,10 +30,7 @@ export class ActivityService {
   /**
    * 更新活动
    */
-  async updateActivity(
-    id: string,
-    data: Partial<Omit<Activity, "id" | "created" | "updated">>,
-  ) {
+  async updateActivity(id: string, data: Partial<ActivityData>) {
     return executeAuthenticatedOperation(async () => {
       try {
         const record = await this.pb
@@ -69,17 +66,64 @@ export class ActivityService {
    * 获取活动详情
    */
   async getActivity(id: string) {
+    return executeAuthenticatedOperation(async () => {
+      try {
+        const record = await this.pb
+          .collection(Collections.ACTIVITIES)
+          .getOne<Activity>(id, {
+            expand: "registrations_count",
+          });
+        return record;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(`获取活动失败: ${error.message}`);
+        }
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * 获取活动列表 (用于前台展示)
+   */
+  async getActivityList() {
     try {
-      const record = await this.pb
+      const records = await this.pb
         .collection(Collections.ACTIVITIES)
-        .getOne<Activity>(id);
-      return record;
+        .getList<Activity>(1, 50, {
+          sort: "-created",
+          expand: "registrations_count",
+        });
+      return records.items;
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`获取活动失败: ${error.message}`);
+        throw new Error(`获取活动列表失败: ${error.message}`);
       }
       throw error;
     }
+  }
+
+  /**
+   * 获取完整活动列表 (用于管理后台)
+   */
+  async getAdminActivityList() {
+    return executeAuthenticatedOperation(async () => {
+      try {
+        const records = await this.pb
+          .collection(Collections.ACTIVITIES)
+          .getList<Activity>(1, 100, {
+            sort: "-created",
+            expand: "registrations_count,registrations",
+            fields: "*,registrations_count,registrations.*",
+          });
+        return records.items;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(`获取管理列表失败: ${error.message}`);
+        }
+        throw error;
+      }
+    });
   }
 }
 

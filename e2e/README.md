@@ -1,67 +1,64 @@
-# E2E 测试说明
+# 端到端测试说明
 
-## 必需的 data-testid 属性
+本项目使用 Playwright 进行端到端测试，包括活动管理、用户注册等功能的测试。
 
-### 表单组件
-- `registration-form`: 报名表单容器
-- `registration-name`: 报名姓名输入框
-- `registration-phone`: 报名手机号输入框
-- `submit-registration`: 报名提交按钮
-- `activity-form`: 活动表单容器
-- `activity-title`: 活动标题输入框
-- `activity-content`: 活动内容输入框
-- `activity-deadline`: 活动截止时间输入框
-- `activity-winners-count`: 活动中签人数输入框
+## 测试环境设置
 
-### 抽签结果页面
-- `draw-result-dialog`: 抽签结果对话框
-- `draw-result-title`: 抽签结果标题
-- `result-table`: 结果显示表格
-- `winner-row`: 中签者行
-- `total-count`: 总报名人数
-- `winners-count`: 中签人数
-- `win-rate`: 中签率
-- `waiting-message`: 等待开奖提示
-- `start-draw`: 开始抽签按钮
-- `confirm-draw`: 确认抽签结果按钮
+1. 创建 `.env.test` 文件，添加以下配置：
+   ```env
+   NEXT_PUBLIC_POCKETBASE_URL=http://127.0.0.1:8090
+   TEST_ADMIN_USERNAME=admin    # 测试管理员用户名
+   TEST_ADMIN_PASSWORD=123456   # 测试管理员密码
+   ```
 
-### 查询组件
-- `query-name`: 查询姓名输入框
-- `query-phone`: 查询手机号输入框
-- `query-submit`: 查询提交按钮
-- `query-result`: 查询结果显示区域
-- `error-dialog`: 错误提示对话框
-- `error-title`: 错误提示标题
-- `error-message`: 错误提示消息
+2. 安装依赖：
+   ```bash
+   npm install
+   ```
 
-### 活动列表
-- `activity-list`: 活动列表容器
-- `delete-activity`: 删除活动按钮
-
-## 测试文件说明
-
-- `fixtures.ts`: 测试固定装置和辅助函数
-- `activity-management.test.ts`: 活动管理相关测试
-- `registration.test.ts`: 报名功能相关测试
-- `lucky-draw.test.ts`: 抽签和结果查询相关测试
-- `dialogs.test.ts`: 对话框交互相关测试
+3. 安装 Playwright 浏览器：
+   ```bash
+   npx playwright install
+   ```
 
 ## 运行测试
 
-```bash
-# 运行所有测试
-npx playwright test
+1. 启动 PocketBase 服务器：
+   ```bash
+   npm run pb:start
+   ```
 
-# 运行特定测试文件
-npx playwright test e2e/registration.test.ts
+2. 在新的终端中运行测试：
+   ```bash
+   # 运行所有测试
+   npm test
 
-# 在调试模式下运行测试
-npx playwright test --debug
-```
+   # 或者单独运行测试步骤
+   npm run test:setup     # 创建测试管理员账号
+   npm run test:e2e      # 运行端到端测试
+   ```
+
+## 测试说明
+
+- `test:setup` 会创建一个具有管理员权限的测试账号
+- 所有管理员相关的测试都会使用这个测试账号
+- 测试运行时会自动处理登录状态
+- 每个测试用例结束后会自动清理测试数据
+
+## 调试
+
+1. 使用 UI 模式运行测试：
+   ```bash
+   npx playwright test --ui
+   ```
+
+2. 查看测试报告：
+   ```bash
+   npx playwright show-report
+   ```
 
 ## 注意事项
 
-1. 运行测试前确保后端服务已启动
-2. 每个测试用例应该是独立的，不依赖其他测试的状态
-3. 测试数据会在测试完成后自动清理
-4. 如遇到超时错误，可以适当调整超时时间
+- 请勿在生产环境使用测试配置
+- 测试时会创建和删除数据，请确保使用测试环境
+- 每次测试前会重新创建管理员账号（如果不存在）

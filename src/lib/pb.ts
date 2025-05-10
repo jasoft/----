@@ -1,171 +1,132 @@
 import PocketBase from "pocketbase";
 
-// 创建PocketBase实例
-export const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+let instance: PocketBase | null = null;
 
-// API响应类型
-interface AdminAuthError {
-  error: string;
+export enum Collections {
+  ACTIVITIES = "activities",
+  REGISTRATIONS = "registrations",
+  USERS = "users",
 }
 
-interface AdminAuthSuccess {
-  token: string;
-  model: object;
-}
-
-// 认证状态
-let authState: {
-  isValid: boolean;
-  token: string | null;
-  lastCheck: number;
-} = {
-  isValid: false,
-  token: null,
-  lastCheck: 0,
-};
-
-// 检查认证是否过期（15分钟）
-const isAuthExpired = () => {
-  const now = Date.now();
-  return now - authState.lastCheck > 15 * 60 * 1000;
-};
-
-// 验证当前认证状态
-const validateAuth = async () => {
-  if (!authState.isValid || isAuthExpired()) {
-    authState.isValid = false;
-    authState.token = null;
-    throw new Error("认证已过期，请重新登录");
-  }
-};
-
-// 用于服务端
-export const getPocketBaseServerInstance = () => {
-  return new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
-};
-
-// 用于客户端
-export const getPocketBaseClientInstance = () => {
-  return pb;
-};
-
-// 管理员登录
-export const loginAsAdmin = async () => {
-  try {
-    if (authState.isValid && !isAuthExpired()) {
-      return pb.authStore.model;
-    }
-
-    const res = await fetch("/api/admin/auth", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      const error = (await res.json()) as AdminAuthError;
-      throw new Error(error.error ?? "认证失败");
-    }
-
-    const data = (await res.json()) as AdminAuthSuccess;
-
-    if (!data.token || !data.model) {
-      throw new Error("认证响应无效");
-    }
-
-    // @ts-expect-error - PocketBase的类型定义与实际实现不匹配
-    pb.authStore.save(data.token, data.model);
-
-    authState = {
-      isValid: true,
-      token: data.token,
-      lastCheck: Date.now(),
-    };
-
-    return data.model;
-  } catch (error) {
-    console.error("管理员登录失败:", error);
-
-    // 重置认证状态
-    authState = {
-      isValid: false,
-      token: null,
-      lastCheck: 0,
-    };
-
-    if (error instanceof Error) {
-      throw new Error(`认证失败: ${error.message}`);
-    }
-
-    throw error;
-  }
-};
-
-// 检查是否已认证
-export const isAuthenticated = () => {
-  return authState.isValid && !isAuthExpired();
-};
-
-// 登出
-export const logout = () => {
-  pb.authStore.clear();
-  authState = {
-    isValid: false,
-    token: null,
-    lastCheck: 0,
-  };
-};
-
-// 执行需要认证的操作
-export const executeAuthenticatedOperation = async <T>(
-  operation: () => Promise<T>,
-): Promise<T> => {
-  try {
-    await validateAuth();
-    return await operation();
-  } catch (error) {
-    if (error instanceof Error && error.message === "认证已过期，请重新登录") {
-      // 尝试重新登录
-      await loginAsAdmin();
-      return await operation();
-    }
-    throw error;
-  }
-};
-
-// 通用响应类型
-export interface PocketBaseResponse<T extends Model = Model> {
-  page: number;
-  perPage: number;
-  totalPages: number;
-  totalItems: number;
-  items: Array<T>;
-}
-
-// 类型定义
-export interface Model {
+// PocketBase 基础记录类型
+interface BaseRecord {
   id: string;
   created: string;
   updated: string;
+  collectionId: string;
+  collectionName: string;
 }
 
-export interface Activity extends Model {
+// 活动表单字段
+export interface ActivityData {
   title: string;
   content: string;
   deadline: string;
   winnersCount: number;
 }
 
-export interface Registration extends Model {
-  activityId: string;
-  name: string;
-  photo: string;
-  isWinner: boolean;
+export interface Activity extends BaseRecord, ActivityData {
+  expand?: {
+    registrations_count?: number;
+    registrations?: Registration[];
+  };
 }
 
-// 集合名称
-export const Collections = {
-  ACTIVITIES: "activities",
-  REGISTRATIONS: "registrations",
-} as const;
+export interface Registration extends BaseRecord {
+  name: string;
+  phone: string;
+  activity: string;
+  isWinner: boolean;
+  photo?: string;
+  expand?: {
+    activity?: Activity;
+  };
+}
+
+// PocketBase 认证模型
+export interface AuthModel extends BaseRecord {
+  email: string;
+  username: string;
+  verified: boolean;
+  role?: string;
+  isAdmin?: boolean;
+  lastResetSentAt: string;
+  lastVerificationSentAt: string;
+  profile: Record<string, unknown>;
+  tokenExpire?: string;
+}
+
+const isClient = typeof window !== "undefined";
+
+export function getPocketBaseClientInstance() {
+  if (!instance) {
+    instance = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+
+    // 在客户端环境下才初始化认证状态
+    if (isClient) {
+      // 设置持久化认证
+      instance.autoCancellation(false);
+
+      // 监听认证状态变化并持久化
+      instance.authStore.onChange(() => {
+        console.log("Auth state changed", instance?.authStore.isValid);
+      });
+    }
+  }
+  return instance;
+}
+
+/**
+ * 执行需要认证的操作
+ * 自动处理token刷新和错误重试
+ */
+export async function executeAuthenticatedOperation<T>(
+  operation: () => Promise<T>,
+  retries = 3,
+): Promise<T> {
+  const pb = getPocketBaseClientInstance();
+
+  try {
+    // 检查认证状态
+    if (!pb.authStore.isValid) {
+      throw new Error("未登录或登录已过期");
+    }
+
+    // 如果token即将过期，尝试刷新
+    const model = pb.authStore.model as AuthModel | null;
+    if (model?.tokenExpire) {
+      const tokenExp = new Date(model.tokenExpire);
+      if (tokenExp < new Date(Date.now() + 5 * 60 * 1000)) {
+        await pb.collection("users").authRefresh();
+      }
+    }
+
+    return await operation();
+  } catch (error) {
+    if (retries > 0 && error instanceof Error) {
+      // 如果是认证错误且还有重试次数，尝试刷新token后重试
+      if (error.message.includes("认证") || error.message.includes("auth")) {
+        try {
+          await pb.collection("users").authRefresh();
+          return executeAuthenticatedOperation(operation, retries - 1);
+        } catch {
+          throw new Error("认证已过期，请重新登录");
+        }
+      }
+    }
+    throw error;
+  }
+}
+
+/**
+ * 检查当前用户是否为管理员
+ */
+export { AdminAuth } from "./auth";
+
+/**
+ * 管理员登出
+ */
+export function adminLogout() {
+  const pb = getPocketBaseClientInstance();
+  pb.authStore.clear();
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Model, PocketBaseResponse } from "~/lib/pb";
+import type { Registration } from "~/lib/pb";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -41,20 +41,25 @@ export function RegistrationForm({
     resolver: zodResolver(registrationSchema),
   });
 
-  interface CheckPhoneRecord extends Model {
-    phone: string;
+  interface ListResponse {
+    page: number;
+    perPage: number;
+    totalItems: number;
+    totalPages: number;
+    items: Registration[];
   }
-
-  type CheckPhoneResponse = PocketBaseResponse<CheckPhoneRecord>;
 
   const checkPhoneExists = async (phone: string): Promise<boolean> => {
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=(activityId="${activityId}" && phone="${phone}")`,
       );
-      if (!res.ok) return false;
-      const data = (await res.json()) as CheckPhoneResponse;
-      return data.totalItems > 0;
+      if (!res.ok) {
+        console.error("检查手机号存在性失败");
+        return false;
+      }
+      const response = (await res.json()) as ListResponse;
+      return response.totalItems > 0;
     } catch (error) {
       return false;
     }
@@ -79,7 +84,7 @@ export function RegistrationForm({
       await onSubmit(formData);
 
       // 显示成功提示
-      await Dialog.success("报名成功", "您已成功报名参加活动");
+      void Dialog.success("报名成功", "您已成功报名参加活动");
 
       // 重置表单
       reset();
@@ -153,7 +158,7 @@ export function RegistrationForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="btn btn-primary w-full"
+        className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSubmitting ? "提交中..." : "提交报名"}
       </button>

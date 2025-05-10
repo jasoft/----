@@ -22,12 +22,16 @@ async function getActivity(id: string) {
   }
 }
 
-export default async function ActivityManagePage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const activity = await getActivity(params.id);
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default async function ActivityManagePage({ params }: PageProps) {
+  // 确保先解析params
+  const { id } = await params;
+  const activity = await getActivity(id);
 
   if (!activity) {
     notFound();
@@ -35,7 +39,6 @@ export default async function ActivityManagePage({
 
   return (
     <main className="container mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold">编辑活动</h1>
       <ActivityContainer mode="edit" activity={activity} />
     </main>
   );

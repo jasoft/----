@@ -5,7 +5,24 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { cn } from "~/lib/utils";
 import { Input } from "~/components/ui/input";
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 
+// 配置dayjs使用时区
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Shanghai");
+
+// 表单数据类型
+interface FormData {
+  title: string;
+  content: string;
+  deadline: string;
+  winnersCount: string;
+}
+
+// 验证模式
 const activitySchema = z.object({
   title: z
     .string()
@@ -17,21 +34,31 @@ const activitySchema = z.object({
     .string()
     .min(1, "截止时间不能为空")
     .refine((val) => {
-      const date = new Date(val);
-      return date > new Date();
+      const date = dayjs(val).tz();
+      const now = dayjs().tz();
+      return date.isAfter(now);
     }, "截止时间必须是未来时间"),
   winnersCount: z
-    .number()
-    .int("中签人数必须是整数")
+    .string()
     .min(1, "中签人数不能为空")
-    .max(1000, "中签人数不能超过1000人"),
+    .refine((val) => !isNaN(Number(val)), "中签人数必须是数字")
+    .refine((val) => Number(val) >= 1, "中签人数不能小于1")
+    .refine((val) => Number(val) <= 1000, "中签人数不能超过1000人"),
 });
 
-export type ActivityFormData = z.infer<typeof activitySchema>;
-
 interface ActivityFormProps {
-  onSubmit: (data: ActivityFormData) => Promise<void>;
-  defaultValues?: Partial<ActivityFormData>;
+  onSubmit: (data: {
+    title: string;
+    content: string;
+    deadline: string;
+    winnersCount: number;
+  }) => Promise<void>;
+  defaultValues?: {
+    title?: string;
+    content?: string;
+    deadline?: string;
+    winnersCount?: number;
+  };
   isSubmitting?: boolean;
   error?: string | null;
 }
@@ -42,34 +69,44 @@ export function ActivityForm({
   isSubmitting = false,
   error = null,
 }: ActivityFormProps) {
-  // 设置默认的截止时间为当前时间后24小时
-  const defaultDeadline = new Date();
-  defaultDeadline.setHours(defaultDeadline.getHours() + 24);
+  // 设置默认的截止时间为当前时间后24小时，使用本地时区
+  const defaultDeadline = dayjs().tz().add(24, "hour");
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
-  } = useForm<ActivityFormData>({
+  } = useForm<FormData>({
     resolver: zodResolver(activitySchema),
     defaultValues: {
-      ...defaultValues,
-      deadline:
-        defaultValues?.deadline ?? defaultDeadline.toISOString().slice(0, 16),
       title: defaultValues?.title ?? "",
       content: defaultValues?.content ?? "",
-      winnersCount: defaultValues?.winnersCount,
+      deadline:
+        defaultValues?.deadline ?? defaultDeadline.format("YYYY-MM-DDTHH:mm"),
+      winnersCount: defaultValues?.winnersCount?.toString() ?? "",
     },
   });
 
   const winnersCount = watch("winnersCount");
 
+  // 获取当前时间（本地时区）
+  const now = dayjs().tz().format("YYYY-MM-DDTHH:mm");
+
+  const handleFormSubmit = handleSubmit(async (data) => {
+    // 转换中签人数为数字
+    await onSubmit({
+      ...data,
+      winnersCount: Number(data.winnersCount),
+    });
+  });
+
   return (
     <form
       data-testid="activity-form"
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleFormSubmit}
       className="space-y-4"
+      noValidate // 禁用浏览器原生验证
     >
       {error && (
         <div className="rounded-md bg-red-50 p-4">
@@ -128,7 +165,7 @@ export function ActivityForm({
           type="datetime-local"
           error={!!errors.deadline}
           {...register("deadline")}
-          min={new Date().toISOString().slice(0, 16)}
+          min={now}
         />
         {errors.deadline && (
           <p className="mt-1 text-sm text-red-500" data-testid="error-deadline">
@@ -145,7 +182,7 @@ export function ActivityForm({
           htmlFor="winnersCount"
           className="mb-2 block text-sm font-medium"
         >
-          中签人数
+          中签名额
         </label>
         <Input
           id="winnersCount"
@@ -154,13 +191,7 @@ export function ActivityForm({
           min="1"
           max="1000"
           error={!!errors.winnersCount}
-          {...register("winnersCount", {
-            valueAsNumber: true,
-            setValueAs: (v) => {
-              const num = Number(v);
-              return isNaN(num) ? undefined : num;
-            },
-          })}
+          {...register("winnersCount")}
           placeholder="请输入中签人数 (1-1000)"
         />
         {errors.winnersCount && (
@@ -173,7 +204,7 @@ export function ActivityForm({
         )}
         <p className="mt-1 text-sm text-gray-500">
           建议设置合理的中签人数，通常不超过预期报名人数的50%
-          {winnersCount > 500 && (
+          {Number(winnersCount) > 500 && (
             <span className="text-yellow-500">
               （当前设置的人数较多，请确认是否合理）
             </span>

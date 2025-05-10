@@ -1,24 +1,60 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
+import duration from "dayjs/plugin/duration";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
+
+// 配置dayjs
+dayjs.locale("zh-cn");
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(duration);
+dayjs.extend(relativeTime);
+
+// 设置默认时区为中国时区
+dayjs.tz.setDefault("Asia/Shanghai");
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// 格式化日期
+// 格式化日期 (确保服务器端和客户端输出一致)
 export function formatDate(date: Date | string) {
-  return new Date(date).toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-  });
+  return dayjs(date).tz().format("YYYY年MM月DD日 HH:mm");
+}
+
+// 获取剩余时间
+export function getTimeLeft(deadline: Date | string) {
+  const now = dayjs().tz();
+  const end = dayjs(deadline).tz();
+  if (now.isAfter(end)) return "已结束";
+
+  const diff = end.diff(now);
+  const duration = dayjs.duration(diff);
+
+  const days = Math.floor(duration.asDays());
+  const hours = duration.hours();
+  const minutes = duration.minutes();
+
+  if (days > 0) {
+    return `还剩 ${days} 天 ${hours} 小时`;
+  } else if (hours > 0) {
+    return `还剩 ${hours} 小时 ${minutes} 分钟`;
+  } else if (minutes > 0) {
+    return `还剩 ${minutes} 分钟`;
+  } else {
+    return "即将结束";
+  }
 }
 
 // 检查是否已过期
 export function isExpired(deadline: Date | string) {
-  return new Date(deadline) < new Date();
+  const now = dayjs().tz();
+  const end = dayjs(deadline).tz();
+  return end.isBefore(now);
 }
 
 // 随机抽取指定数量的元素

@@ -5,6 +5,7 @@ import {
   type TestType,
 } from "@playwright/test";
 import PocketBase, { ClientResponseError } from "pocketbase";
+import type { AuthModel } from "~/lib/pb";
 
 export interface TestActivity {
   id: string;
@@ -14,7 +15,7 @@ export interface TestActivity {
   winnersCount: number;
   created: string;
   updated: string;
-  isPublished?: boolean; // 设为可选以兼容现有测试
+  isPublished?: boolean;
 }
 
 // 每个测试用例的固定装置
@@ -39,6 +40,19 @@ const DEFAULT_TEST_ACTIVITY = {
   isPublished: true,
 };
 
+// 管理员登录信息
+const ADMIN_USERNAME = process.env.TEST_ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD;
+
+if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
+  throw new Error(
+    "请在 .env.test 文件中配置以下环境变量:\n" +
+      "TEST_ADMIN_USERNAME - 管理员用户名\n" +
+      "TEST_ADMIN_PASSWORD - 管理员密码\n" +
+      "注意：该用户必须具有管理员权限(role=admin)",
+  );
+}
+
 /* eslint-disable react-hooks/rules-of-hooks */
 // 创建测试固定装置
 const test = base.extend<TestFixtures, WorkerFixtures>({
@@ -48,18 +62,23 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
       const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
 
       try {
-        const email = process.env.POCKETBASE_ADMIN_EMAIL;
-        const password = process.env.POCKETBASE_ADMIN_PASSWORD;
-
-        if (!email || !password) {
-          throw new Error("管理员凭据未配置，请检查 .env.test 文件");
-        }
-
-        await pb.admins.authWithPassword(email, password);
+        // 使用管理员用户账号登录
+        const authData = await pb
+          .collection("users")
+          .authWithPassword(ADMIN_USERNAME, ADMIN_PASSWORD);
 
         if (!pb.authStore.isValid) {
           throw new Error("管理员认证失败");
         }
+
+        const model = authData.record as AuthModel;
+        console.log("[Fixture] Worker PB 认证成功:", {
+          model: {
+            id: model.id,
+            username: model.username,
+            role: model.role,
+          },
+        });
       } catch (error) {
         console.error("管理员登录失败:", error);
         throw error;
@@ -74,18 +93,18 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
   ],
 
   // 页面实例
-  testPage: async ({ page, workerPb }, use) => {
-    // 在每个测试开始前执行管理员登录
-    const email = process.env.POCKETBASE_ADMIN_EMAIL;
-    const password = process.env.POCKETBASE_ADMIN_PASSWORD;
+  testPage: async ({ page }, use) => {
+    // 导航到管理后台前先登录
+    await page.goto("/admin/login");
 
-    if (!email || !password) {
-      throw new Error("管理员凭据未配置，请检查 .env.test 文件");
-    }
+    // 填写登录表单
+    await page.fill('input[id="username"]', ADMIN_USERNAME);
+    await page.fill('input[id="password"]', ADMIN_PASSWORD);
+    await page.click('button[type="submit"]');
 
-    await workerPb.admins.authWithPassword(email, password);
+    // 等待登录成功并跳转
+    await page.waitForURL("/admin**");
 
-    await page.goto("/admin");
     await use(page);
   },
 

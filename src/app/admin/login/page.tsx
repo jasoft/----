@@ -1,0 +1,137 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getPocketBaseClientInstance } from "~/lib/pb";
+import { AdminAuth } from "~/lib/auth";
+import { Dialog } from "~/components/ui/dialog";
+
+export default function LoginPage() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const pb = getPocketBaseClientInstance();
+      const authData = await pb
+        .collection("users")
+        .authWithPassword(username, password);
+
+      // 验证返回的登录数据
+      AdminAuth.validateLoginResponse({
+        token: pb.authStore.token,
+        record: {
+          id: authData.record.id,
+          email: String(authData.record.email),
+          username: String(authData.record.username),
+          verified: Boolean(authData.record.verified),
+          role: String(authData.record.role ?? ""),
+          isAdmin: Boolean(authData.record.isAdmin),
+          tokenExpire: String(authData.record.tokenExpire ?? ""),
+          created: String(authData.record.created),
+          updated: String(authData.record.updated),
+          collectionId: String(authData.record.collectionId),
+          collectionName: String(authData.record.collectionName),
+        },
+      });
+
+      // 手动设置cookie以确保服务器端可以读取
+      document.cookie = `pb_auth=${JSON.stringify({
+        token: pb.authStore.token,
+        model: pb.authStore.model,
+      })}; path=/`;
+
+      // 登录成功后重定向
+      const from = searchParams.get("from") ?? "/admin";
+      router.replace(from);
+      router.refresh();
+    } catch (err) {
+      let message = "登录失败";
+      if (err instanceof Error) {
+        if (err.message.includes("password")) {
+          message = "用户名或密码错误";
+        } else {
+          message = err.message;
+        }
+      }
+      setError(message);
+      await Dialog.error("登录失败", message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+      <div className="w-full max-w-md">
+        <div className="rounded-lg border border-neutral-200 bg-white p-8 shadow-sm">
+          <h1 className="mb-6 text-center text-2xl font-bold text-neutral-900">
+            管理员登录
+          </h1>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="username"
+                className="mb-1 block text-sm font-medium text-neutral-700"
+              >
+                用户名
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="input input-bordered w-full"
+                required
+                autoComplete="username"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="mb-1 block text-sm font-medium text-neutral-700"
+              >
+                密码
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input input-bordered w-full"
+                required
+                autoComplete="current-password"
+                disabled={isLoading}
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className={`btn btn-primary w-full ${isLoading ? "loading" : ""}`}
+              disabled={isLoading}
+            >
+              {isLoading ? "登录中..." : "登录"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </main>
+  );
+}
