@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "~/components/ui/input";
 import { Dialog } from "~/components/ui/dialog";
+import { useRouter } from "next/navigation";
 
 const registrationSchema = z.object({
   name: z
@@ -38,6 +39,7 @@ export function RegistrationForm({
 }: RegistrationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const {
     register,
@@ -91,6 +93,9 @@ export function RegistrationForm({
       formData.append("phone", data.phone);
       await onSubmit(formData);
 
+      // 重定向到结果页面
+      router.push(`/activity/${activityId}/result`);
+
       // 显示成功提示
       void Dialog.success("报名成功", "您已成功报名参加活动");
 
@@ -133,7 +138,10 @@ export function RegistrationForm({
       data-testid="registration-form"
     >
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
+        <div
+          className="rounded-md bg-red-50 p-4"
+          data-testid="registration-error"
+        >
           <p className="text-sm text-red-500">{error}</p>
         </div>
       )}
@@ -149,7 +157,9 @@ export function RegistrationForm({
           placeholder="请输入您的姓名 (2-20字符)"
         />
         {errors.name && (
-          <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
+          <p className="mt-1 text-sm text-red-500" data-testid="name-error">
+            {errors.name.message}
+          </p>
         )}
       </div>
 
@@ -165,7 +175,9 @@ export function RegistrationForm({
           placeholder="请输入您的手机号码"
         />
         {errors.phone && (
-          <p className="mt-1 text-sm text-red-500">{errors.phone.message}</p>
+          <p className="mt-1 text-sm text-red-500" data-testid="phone-error">
+            {errors.phone.message}
+          </p>
         )}
       </div>
 

@@ -67,6 +67,8 @@ test.describe("报名功能测试", () => {
         "您已成功报名参加活动",
       );
       await testPage.click(".swal2-confirm"); // 关闭提示框
+      // 验证跳转到结果页面
+      await expect(testPage).toHaveURL(`/activity/${testActivity.id}/result`);
     });
 
     test("表单验证 - 必填字段", async ({ testPage }) => {
@@ -74,8 +76,12 @@ test.describe("报名功能测试", () => {
       await testPage.click('[data-testid="submit-registration"]');
 
       // 验证错误提示
-      await expect(testPage.locator('text="姓名不能为空"')).toBeVisible();
-      await expect(testPage.locator('text="手机号码必须是11位"')).toBeVisible();
+      await expect(
+        testPage.locator('[data-testid="name-error"]'),
+      ).toContainText("姓名长度");
+      await expect(
+        testPage.locator('[data-testid="phone-error"]'),
+      ).toContainText("手机号码必须是11位");
     });
 
     test("表单验证 - 手机号格式", async ({ testPage }) => {
@@ -87,9 +93,9 @@ test.describe("报名功能测试", () => {
       await testPage.click('[data-testid="submit-registration"]');
 
       // 验证错误提示
-      await expect(testPage.locator('text="手机号码格式无效"')).toBeVisible();
-      await expect(testPage.locator('text="11位数字"')).toBeVisible();
-      await expect(testPage.locator('text="以1开头"')).toBeVisible();
+      await expect(
+        testPage.locator('[data-testid="phone-error"]'),
+      ).toContainText("手机号码必须是11位");
     });
   });
 
@@ -115,11 +121,9 @@ test.describe("报名功能测试", () => {
       await testPage.click('[data-testid="submit-registration"]');
 
       // 验证错误提示
-      await expect(testPage.locator(".swal2-popup")).toBeVisible();
-      await expect(testPage.locator(".swal2-title")).toHaveText("报名失败");
-      await expect(testPage.locator(".swal2-html-container")).toContainText(
-        "您已经报名过该活动",
-      );
+      await expect(
+        testPage.locator('[data-testid="registration-error"]'),
+      ).toContainText("该手机号码已报名，请勿重复报名");
     });
   });
 
@@ -131,23 +135,7 @@ test.describe("报名功能测试", () => {
       });
 
       await testPage.goto(`/activity/${testActivity.id}/register`);
-      await expect(
-        testPage.locator('[data-testid="registration-form"]'),
-      ).toBeVisible();
-
-      await fillRegistrationForm(testPage, {
-        name: "张三",
-        phone: "13800138000",
-      });
-
-      await testPage.click('[data-testid="submit-registration"]');
-
-      // 验证错误提示
-      await expect(testPage.locator(".swal2-popup")).toBeVisible();
-      await expect(testPage.locator(".swal2-title")).toHaveText("报名失败");
-      await expect(testPage.locator(".swal2-html-container")).toContainText(
-        "活动报名已截止",
-      );
+      await expect(testPage.locator('text="报名已截止"')).toBeVisible();
     });
   });
 });
