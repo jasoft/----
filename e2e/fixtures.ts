@@ -13,6 +13,7 @@ export interface TestActivity {
   content: string;
   deadline: string;
   winnersCount: number;
+  maxRegistrants: number;
   created: string;
   updated: string;
   isPublished?: boolean;
@@ -33,10 +34,11 @@ export interface WorkerFixtures {
 
 // 默认测试活动数据
 const DEFAULT_TEST_ACTIVITY = {
-  title: "测试活动1",
-  content: "这是测试活动1的详细描述",
+  title: `测试活动${Math.floor(Math.random() * 10000)}`,
+  content: "这是一个随机生成的测试活动",
   deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   winnersCount: 10,
+  maxRegistrants: 100,
   isPublished: true,
 };
 
@@ -136,6 +138,7 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
           content: record.content,
           deadline: record.deadline,
           winnersCount: record.winnersCount,
+          maxRegistrants: record.maxRegistrants,
           created: record.created,
           updated: record.updated,
           isPublished: isPublished ?? DEFAULT_TEST_ACTIVITY.isPublished,
@@ -177,6 +180,7 @@ interface ActivityRecord {
   content: string;
   deadline: string;
   winnersCount: number;
+  maxRegistrants: number;
 }
 
 // 导出类型和工具函数

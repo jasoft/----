@@ -6,6 +6,7 @@ interface ActivityFormData {
   content: string;
   deadline?: Date;
   winnersCount?: string;
+  maxRegistrants?: string;
 }
 
 // 辅助函数：填写活动表单
@@ -29,6 +30,12 @@ async function fillActivityForm(page: Page, data: ActivityFormData) {
       data.winnersCount,
     );
   }
+  if (data.maxRegistrants !== undefined) {
+    await page.fill(
+      '[data-testid="activity-max-registrants"]',
+      data.maxRegistrants,
+    );
+  }
 }
 
 test.describe("活动管理测试", () => {
@@ -36,6 +43,10 @@ test.describe("活动管理测试", () => {
     test.beforeEach(async ({ testPage: page }) => {
       await page.goto("/admin/new");
       await expect(page.locator('[data-testid="activity-form"]')).toBeVisible();
+    });
+
+    test.afterEach(async ({ testPage: page }) => {
+      await page.goto("/admin/logout");
     });
 
     test("成功创建活动", async ({ testPage: page }) => {
@@ -46,6 +57,7 @@ test.describe("活动管理测试", () => {
         title: testTitle,
         content: testContent,
         winnersCount: "20",
+        maxRegistrants: "100",
       });
 
       // 点击提交并等待导航
@@ -72,6 +84,9 @@ test.describe("活动管理测试", () => {
       await expect(
         page.locator('[data-testid="error-winners-count"]'),
       ).toContainText("中签人数不能为空");
+      await expect(
+        page.locator('[data-testid="error-max-registrants"]'),
+      ).toContainText("最大报名人数不能为空");
     });
 
     test("表单验证 - 过期时间", async ({ testPage: page }) => {
@@ -91,6 +106,44 @@ test.describe("活动管理测试", () => {
       await expect(
         page.locator('[data-testid="error-deadline"]'),
       ).toContainText("截止时间必须是未来时间");
+    });
+
+    test("表单验证 - 最大报名人数限制", async ({ testPage: page }) => {
+      // 测试小于1的情况
+      await fillActivityForm(page, {
+        title: "测试活动",
+        content: "测试内容",
+        winnersCount: "10",
+        maxRegistrants: "0",
+      });
+      await page.click('button[type="submit"]');
+      await expect(
+        page.locator('[data-testid="error-max-registrants"]'),
+      ).toContainText("最大报名人数不能小于1");
+
+      // 测试大于10000的情况
+      await fillActivityForm(page, {
+        title: "测试活动",
+        content: "测试内容",
+        winnersCount: "10",
+        maxRegistrants: "10001",
+      });
+      await page.click('button[type="submit"]');
+      await expect(
+        page.locator('[data-testid="error-max-registrants"]'),
+      ).toContainText("最大报名人数不能超过10000人");
+
+      // 测试小于中签人数的情况
+      await fillActivityForm(page, {
+        title: "测试活动",
+        content: "测试内容",
+        winnersCount: "150",
+        maxRegistrants: "100",
+      });
+      await page.click('button[type="submit"]');
+      await expect(
+        page.locator('[data-testid="error-max-registrants"]'),
+      ).toContainText("最大报名人数必须大于或等于中签人数");
     });
 
     test("表单验证 - 中签人数限制", async ({ testPage: page }) => {
@@ -149,13 +202,11 @@ test.describe("活动管理测试", () => {
         title: updatedTitle,
         content: updatedContent,
         winnersCount: "30",
+        maxRegistrants: "100",
       });
 
       // 提交并等待导航
-      await Promise.all([
-        page.waitForNavigation(),
-        page.click('button[type="submit"]'),
-      ]);
+      await Promise.all([page.click('button[type="submit"]')]);
 
       // 验证更新结果
       await expect(page.locator("main")).toContainText(updatedTitle);
@@ -170,12 +221,12 @@ test.describe("活动管理测试", () => {
     test("成功删除活动", async ({ testPage: page, createTestActivity }) => {
       // 使用 fixture 创建测试活动
       const activity = await createTestActivity();
-
       await page.goto("/admin");
-      await page.click(`a:has-text("${activity.title}")`);
 
       // 验证删除按钮的存在和可点击性
-      const deleteButton = page.locator('[data-testid="delete-activity"]');
+      const deleteButton = page.locator(
+        `[data-testid="delete-activity-${activity.id}"]`,
+      );
       await expect(deleteButton).toBeVisible();
       await expect(deleteButton).toBeEnabled();
 
@@ -190,7 +241,6 @@ test.describe("活动管理测试", () => {
       await page.click(".swal2-confirm");
 
       // 等待导航并验证活动已删除
-      await page.waitForNavigation();
       await expect(page.locator("main")).not.toContainText(activity.title);
     });
 
@@ -203,10 +253,11 @@ test.describe("活动管理测试", () => {
       const activity = await createTestActivity();
 
       await page.goto("/admin");
-      await page.click(`a:has-text("${activity.title}")`);
 
       // 验证删除按钮的存在和可点击性
-      const deleteButton = page.locator('[data-testid="delete-activity"]');
+      const deleteButton = page.locator(
+        `[data-testid="delete-activity-${activity.id}"]`,
+      );
       await expect(deleteButton).toBeVisible();
       await expect(deleteButton).toBeEnabled();
 

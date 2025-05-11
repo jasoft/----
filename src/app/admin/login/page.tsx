@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getPocketBaseClientInstance } from "~/lib/pb";
-import { AdminAuth } from "~/lib/auth";
 import { Dialog } from "~/components/ui/dialog";
 
 export default function LoginPage() {
@@ -21,33 +20,15 @@ export default function LoginPage() {
 
     try {
       const pb = getPocketBaseClientInstance();
-      const authData = await pb
-        .collection("users")
-        .authWithPassword(username, password);
-
-      // 验证返回的登录数据
-      AdminAuth.validateLoginResponse({
-        token: pb.authStore.token,
-        record: {
-          id: authData.record.id,
-          email: String(authData.record.email),
-          username: String(authData.record.username),
-          verified: Boolean(authData.record.verified),
-          role: String(authData.record.role ?? ""),
-          isAdmin: Boolean(authData.record.isAdmin),
-          tokenExpire: String(authData.record.tokenExpire ?? ""),
-          created: String(authData.record.created),
-          updated: String(authData.record.updated),
-          collectionId: String(authData.record.collectionId),
-          collectionName: String(authData.record.collectionName),
-        },
-      });
+      await pb.collection("users").authWithPassword(username, password);
 
       // 手动设置cookie以确保服务器端可以读取
-      document.cookie = `pb_auth=${JSON.stringify({
-        token: pb.authStore.token,
-        model: pb.authStore.model,
-      })}; path=/`;
+      if (pb.authStore.isValid) {
+        document.cookie = `pb_auth=${JSON.stringify({
+          token: pb.authStore.token,
+          model: pb.authStore.record,
+        })}; path=/`;
+      }
 
       // 登录成功后重定向
       const from = searchParams.get("from") ?? "/admin";

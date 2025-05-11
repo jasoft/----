@@ -1,11 +1,16 @@
 import "~/styles/globals.css";
-
-import { type Metadata } from "next";
+import { Inter } from "next/font/google";
+import { GlobalToast } from "~/components/ui/toast";
 import { Nav } from "~/components/nav";
 
-export const metadata: Metadata = {
-  title: "报名抽签系统",
-  description: "活动报名和抽签系统",
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+export const metadata = {
+  title: "谁是幸运儿",
+  description: "抽奖系统",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
@@ -15,12 +20,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN" data-theme="light">
-      <body className="bg-background min-h-screen">
-        <div className="flex min-h-screen flex-col">
-          <Nav />
-          <div className="flex-1">{children}</div>
-        </div>
+    <html lang="zh-CN">
+      <body className={`font-sans ${inter.variable}`}>
+        <Nav />
+        <GlobalToast />
+        {children}
       </body>
     </html>
   );

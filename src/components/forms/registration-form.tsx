@@ -11,10 +11,18 @@ import { Dialog } from "~/components/ui/dialog";
 const registrationSchema = z.object({
   name: z
     .string()
-    .min(2, "姓名至少需要2个字符")
-    .max(20, "姓名不能超过20个字符")
-    .trim(),
-  phone: z.string().regex(/^1[3-9]\d{9}$/, "请输入有效的手机号码"),
+    .min(2, "姓名长度不能小于2个字符")
+    .max(20, "姓名长度不能超过20个字符")
+    .trim()
+    .refine((value) => value.trim().length > 0, "姓名不能为空"),
+  phone: z
+    .string()
+    .min(11, "手机号码必须是11位")
+    .max(11, "手机号码必须是11位")
+    .regex(
+      /^1[3-9]\d{9}$/,
+      "手机号码格式无效。要求：1. 11位数字 2. 以1开头 3. 第二位在3-9之间 4. 后面是9位数字",
+    ),
 });
 
 type RegistrationFormData = z.infer<typeof registrationSchema>;
@@ -52,10 +60,10 @@ export function RegistrationForm({
   const checkPhoneExists = async (phone: string): Promise<boolean> => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=(activityId="${activityId}" && phone="${phone}")`,
+        `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=(activityId%3D"${activityId}"%26%26phone%3D"${phone}")`,
       );
       if (!res.ok) {
-        console.error("检查手机号存在性失败");
+        console.error("检查手机号存在性失败", res);
         return false;
       }
       const response = (await res.json()) as ListResponse;
@@ -119,7 +127,11 @@ export function RegistrationForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+    <form
+      onSubmit={handleSubmit(handleFormSubmit)}
+      className="space-y-4"
+      data-testid="registration-form"
+    >
       {error && (
         <div className="rounded-md bg-red-50 p-4">
           <p className="text-sm text-red-500">{error}</p>
@@ -132,6 +144,7 @@ export function RegistrationForm({
         </label>
         <Input
           id="name"
+          data-testid="registration-name"
           {...register("name")}
           placeholder="请输入您的姓名 (2-20字符)"
         />
@@ -147,6 +160,7 @@ export function RegistrationForm({
         <Input
           id="phone"
           type="tel"
+          data-testid="registration-phone"
           {...register("phone")}
           placeholder="请输入您的手机号码"
         />
@@ -158,6 +172,7 @@ export function RegistrationForm({
       <button
         type="submit"
         disabled={isSubmitting}
+        data-testid="submit-registration"
         className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSubmitting ? "提交中..." : "提交报名"}

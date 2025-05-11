@@ -12,6 +12,14 @@ async function fillRegistrationForm(page: Page, data: RegistrationFormData) {
   await page.fill('[data-testid="registration-phone"]', data.phone);
 }
 
+// 辅助函数：执行退出登录
+async function logout(page: Page) {
+  // 点击退出登录按钮
+  await page.click('button:has-text("退出登录")');
+  // 等待页面刷新完成
+  await page.waitForURL("/");
+}
+
 test.describe("报名功能测试", () => {
   let testActivity: {
     id: string;
@@ -58,6 +66,7 @@ test.describe("报名功能测试", () => {
       await expect(testPage.locator(".swal2-html-container")).toContainText(
         "您已成功报名参加活动",
       );
+      await testPage.click(".swal2-confirm"); // 关闭提示框
     });
 
     test("表单验证 - 必填字段", async ({ testPage }) => {
@@ -65,11 +74,8 @@ test.describe("报名功能测试", () => {
       await testPage.click('[data-testid="submit-registration"]');
 
       // 验证错误提示
-      const errorMessages = ["姓名不能为空", "手机号码不能为空"];
-
-      for (const message of errorMessages) {
-        await expect(testPage.locator(`text="${message}"`)).toBeVisible();
-      }
+      await expect(testPage.locator('text="姓名不能为空"')).toBeVisible();
+      await expect(testPage.locator('text="手机号码必须是11位"')).toBeVisible();
     });
 
     test("表单验证 - 手机号格式", async ({ testPage }) => {
@@ -81,9 +87,9 @@ test.describe("报名功能测试", () => {
       await testPage.click('[data-testid="submit-registration"]');
 
       // 验证错误提示
-      await expect(
-        testPage.locator('text="请输入有效的手机号码"'),
-      ).toBeVisible();
+      await expect(testPage.locator('text="手机号码格式无效"')).toBeVisible();
+      await expect(testPage.locator('text="11位数字"')).toBeVisible();
+      await expect(testPage.locator('text="以1开头"')).toBeVisible();
     });
   });
 

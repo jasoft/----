@@ -34,6 +34,8 @@ try {
     # 等待服务启动
     Start-Sleep -Seconds 3
 
+    Set-Location ..
+
     if (!$process.HasExited) {
         Write-Host "PocketBase 服务已启动..."
     }

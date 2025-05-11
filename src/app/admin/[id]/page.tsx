@@ -38,7 +38,7 @@ export default async function ActivityManagePage({ params }: PageProps) {
   }
 
   return (
-    <main className="container mx-auto max-w-2xl px-4 py-8">
+    <main className="container mx-auto min-h-screen px-4 py-8">
       <ActivityContainer mode="edit" activity={activity} />
     </main>
   );

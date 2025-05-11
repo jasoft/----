@@ -37,6 +37,8 @@ export function ActivityContainer({
       content: string;
       deadline: string;
       winnersCount: number;
+      maxRegistrants: number;
+      isPublished: boolean;
     }) => {
       setIsSubmitting(true);
       setError(null);
@@ -131,11 +133,13 @@ export function ActivityContainer({
         // 将UTC时间转换为本地时间
         deadline: dayjs(activity.deadline).tz().format("YYYY-MM-DDTHH:mm"),
         winnersCount: activity.winnersCount,
+        maxRegistrants: activity.maxRegistrants,
+        isPublished: activity.isPublished,
       }
     : undefined;
 
   return (
-    <div>
+    <div className="mx-auto max-w-4xl">
       {mode === "edit" && (
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold">编辑活动</h1>

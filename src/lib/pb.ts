@@ -23,6 +23,8 @@ export interface ActivityData {
   content: string;
   deadline: string;
   winnersCount: number;
+  isPublished: boolean;
+  maxRegistrants: number;
 }
 
 export interface Activity extends BaseRecord, ActivityData {
@@ -121,7 +123,6 @@ export async function executeAuthenticatedOperation<T>(
 /**
  * 检查当前用户是否为管理员
  */
-export { AdminAuth } from "./auth";
 
 /**
  * 管理员登出
@@ -129,4 +130,9 @@ export { AdminAuth } from "./auth";
 export function adminLogout() {
   const pb = getPocketBaseClientInstance();
   pb.authStore.clear();
+}
+
+export function isAdmin() {
+  const pb = getPocketBaseClientInstance();
+  return pb.authStore.record?.role === "admin";
 }

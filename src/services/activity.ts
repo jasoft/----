@@ -93,6 +93,7 @@ export class ActivityService {
         .getList<Activity>(1, 50, {
           sort: "-created",
           expand: "registrations_count",
+          filter: "isPublished = true",
         });
       return records.items;
     } catch (error) {

@@ -76,13 +76,25 @@ export default async function RegisterPage({ params }: Props) {
         data: {},
       }))) as PocketBaseErrorResponse;
 
+      // 详细的错误信息处理
       if (errorData.data?.phone?.message) {
-        throw new Error(`手机号码无效: ${errorData.data.phone.message}`);
+        throw new Error(
+          `手机号码错误: ${errorData.data.phone.message}。请检查: 1. 是否是11位数字 2. 是否以1开头 3. 第二位是否在3-9之间`,
+        );
       }
       if (errorData.data?.name?.message) {
-        throw new Error(`姓名无效: ${errorData.data.name.message}`);
+        throw new Error(
+          `姓名错误: ${errorData.data.name.message}。姓名长度需要在2-20个字符之间`,
+        );
       }
-      throw new Error(errorData.message || "提交报名失败");
+      if (errorData.message.includes("Failed to create record")) {
+        throw new Error(
+          "创建报名记录失败。可能原因: 1. 该手机号已报名 2. 活动已截止 3. 报名人数已满",
+        );
+      }
+      throw new Error(
+        errorData.message || "提交报名失败。如果问题持续，请联系管理员",
+      );
     }
 
     // 确保响应体是合法的JSON

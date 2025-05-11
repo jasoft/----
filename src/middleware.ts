@@ -17,7 +17,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/user", request.url));
   }
 
-  // 只拦截/admin路径
+  // 如果路径不以/admin开头，则不拦截
   if (!request.nextUrl.pathname.startsWith("/admin")) {
     return NextResponse.next();
   }
@@ -64,7 +64,12 @@ export async function middleware(request: NextRequest) {
       throw new Error("未登录");
     }
 
-    const model = pb.authStore.model as AuthModel;
+    const model = pb.authStore.record as AuthModel;
+
+    if (model.role !== "admin") {
+      console.log("[Middleware] 认证用户不是管理员");
+      throw new Error("没有权限访问该页面");
+    }
 
     console.log("[Middleware] 认证状态有效:", {
       token: pb.authStore.token ? "存在" : "不存在",
@@ -73,13 +78,9 @@ export async function middleware(request: NextRequest) {
             id: String(model.id),
             username: String(model.username),
             role: model.role ? String(model.role) : undefined,
-            isAdmin: Boolean(model.isAdmin),
           }
         : null,
     });
-
-    // 验证是否为管理员
-    AdminAuth.validateAdmin();
 
     // 检查token是否过期
     if (model?.tokenExpire) {
