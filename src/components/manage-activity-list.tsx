@@ -100,6 +100,23 @@ export function ManageActivityList({
     }
   };
 
+  const handleDraw = async (activity: Activity) => {
+    const confirmed = await Dialog.confirm(
+      "确认抽签",
+      `确定要为活动"${activity.title}"进行抽签吗？此操作不可撤销。`,
+    );
+
+    if (confirmed) {
+      try {
+        await activityService.drawWinners(activity.id);
+        showToast("抽签完成", "success");
+        onDeleted?.();
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "抽签失败", "error");
+      }
+    }
+  };
+
   const handleSelectAll = (checked: boolean) => {
     setSelectedIds(checked ? activities.map((a) => a.id) : []);
   };
@@ -240,6 +257,12 @@ export function ManageActivityList({
                       >
                         编辑
                       </Link>
+                      <Link
+                        href={`/activity/${activity.id}/result`}
+                        className="btn btn-sm btn-info"
+                      >
+                        查看结果
+                      </Link>
                       <button
                         onClick={() => void handleTogglePublish(activity)}
                         className={`btn btn-sm ${
@@ -256,6 +279,15 @@ export function ManageActivityList({
                       >
                         {isActive ? "结束" : "开启"}
                       </button>
+                      {!isActive && (
+                        <button
+                          onClick={() => void handleDraw(activity)}
+                          className="btn btn-sm btn-primary"
+                          data-testid={`draw-activity-${activity.id}`}
+                        >
+                          抽签
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           void Dialog.confirm(

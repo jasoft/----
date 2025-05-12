@@ -222,6 +222,62 @@ export class ActivityService {
       throw new Error("创建报名记录时发生未知类型的错误。");
     }
   }
+
+  /**
+   * 执行抽签
+   * 在指定活动中随机选取报名者作为中签者
+   */
+  async drawWinners(activityId: string) {
+    return executeAuthenticatedOperation(async () => {
+      try {
+        // 1. 获取活动及其报名信息
+        const activity = await this.pb
+          .collection(Collections.ACTIVITIES)
+          .getOne<Activity>(activityId, {
+            expand: "registrations",
+          });
+
+        const registrations = activity.expand?.registrations ?? [];
+        const winnersCount = Math.min(
+          activity.winnersCount,
+          registrations.length,
+        );
+
+        // 新增步骤：重置所有报名者的中签状态
+        if (registrations.length > 0) {
+          await Promise.all(
+            registrations.map((registration) =>
+              this.pb
+                .collection(Collections.REGISTRATIONS)
+                .update(registration.id, {
+                  isWinner: false,
+                }),
+            ),
+          );
+        }
+
+        // 2. 随机选取中签者
+        const shuffled = [...registrations].sort(() => Math.random() - 0.5);
+        const winners = shuffled.slice(0, winnersCount);
+
+        // 3. 更新中签者状态
+        await Promise.all(
+          winners.map((winner) =>
+            this.pb.collection(Collections.REGISTRATIONS).update(winner.id, {
+              isWinner: true,
+            }),
+          ),
+        );
+
+        return winners;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(`执行抽签失败: ${error.message}`);
+        }
+        throw error;
+      }
+    });
+  }
 }
 
 // 导出单例实例

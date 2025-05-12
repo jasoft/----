@@ -217,6 +217,118 @@ test.describe("活动管理测试", () => {
     });
   });
 
+  test.describe("结果查看", () => {
+    test("查看活动结果", async ({
+      testPage: page,
+      createTestActivity,
+      deleteTestActivity,
+    }) => {
+      const activity = await createTestActivity({
+        title: "测试活动",
+        content: "测试内容",
+        deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        winnersCount: 2,
+        maxRegistrants: 5,
+      });
+
+      await page.goto("/admin");
+
+      // 验证显示查看结果按钮
+      const resultLink = page.getByRole("link", { name: "查看结果" });
+      await expect(resultLink).toBeVisible();
+
+      // 点击查看结果按钮
+      await resultLink.click();
+
+      // 验证跳转到结果页面
+      await expect(page).toHaveURL(`/activity/${activity.id}/result`);
+
+      await deleteTestActivity(activity.id);
+    });
+  });
+
+  test.describe("抽签功能", () => {
+    test("未过期活动不显示抽签按钮", async ({
+      testPage: page,
+      createTestActivity,
+      deleteTestActivity,
+    }) => {
+      const activity = await createTestActivity({
+        title: "测试活动",
+        content: "测试内容",
+        deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        winnersCount: 2,
+        maxRegistrants: 5,
+      });
+
+      await page.goto("/admin");
+      await expect(
+        page.locator(`[data-testid="draw-activity-${activity.id}"]`),
+      ).not.toBeVisible();
+
+      await deleteTestActivity(activity.id);
+    });
+
+    test("过期活动可以抽签", async ({
+      testPage: page,
+      pb,
+      createTestActivity,
+      deleteTestActivity,
+    }) => {
+      // 创建一个已过期的活动
+      const activity = await createTestActivity({
+        title: "测试活动",
+        content: "测试内容",
+        deadline: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        winnersCount: 2,
+        maxRegistrants: 5,
+      });
+
+      // 添加报名记录
+      for (let i = 0; i < 5; i++) {
+        const reg = await pb.collection("registrations").create({
+          activity: activity.id,
+          name: `测试用户${i + 1}`,
+          phone: `1380013800${i + 1}`,
+        });
+        console.log(reg);
+        await pb.collection("activities").update(activity.id, {
+          "+registrations": reg.id,
+        });
+      }
+
+      // 验证抽签按钮和流程
+      await page.goto("/admin");
+
+      // 验证显示抽签按钮
+      const drawButton = page.locator(
+        `[data-testid="draw-activity-${activity.id}"]`,
+      );
+      await expect(drawButton).toBeVisible();
+      await expect(drawButton).toBeEnabled();
+
+      // 点击抽签按钮
+      await drawButton.click();
+
+      // 验证确认对话框
+      await expect(page.locator(".swal2-popup")).toBeVisible();
+      await expect(page.locator(".swal2-title")).toHaveText("确认抽签");
+
+      // 确认抽签
+      await page.click(".swal2-confirm");
+
+      // 验证成功提示
+      await expect(page.locator(".swal2-popup")).toBeVisible();
+      await expect(page.locator(".swal2-title")).toHaveText("抽签完成");
+
+      // 验证结果
+      await page.goto(`/activity/${activity.id}/result`);
+      await expect(page.locator('[data-testid="winner-row"]')).toHaveCount(2);
+
+      await deleteTestActivity(activity.id);
+    });
+  });
+
   test.describe("删除活动", () => {
     test("成功删除活动", async ({ testPage: page, createTestActivity }) => {
       // 使用 fixture 创建测试活动

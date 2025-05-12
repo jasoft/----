@@ -1,14 +1,6 @@
 import { notFound } from "next/navigation";
-import { type Activity, type Registration } from "~/lib/pb";
+import { type Activity } from "~/lib/pb";
 import { ResultDisplay } from "./result-display";
-
-interface PocketBaseListResponse<T> {
-  page: number;
-  perPage: number;
-  totalItems: number;
-  totalPages: number;
-  items: T[];
-}
 
 function validateActivityData(data: unknown): Activity {
   if (!data || typeof data !== "object") {
