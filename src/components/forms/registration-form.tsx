@@ -62,7 +62,7 @@ export function RegistrationForm({
   const checkPhoneExists = async (phone: string): Promise<boolean> => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=(activityId%3D"${activityId}"%26%26phone%3D"${phone}")`,
+        `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=(activity%3D"${activityId}"%26%26phone%3D"${phone}")`,
       );
       if (!res.ok) {
         console.error("检查手机号存在性失败", res);
@@ -88,7 +88,7 @@ export function RegistrationForm({
       }
 
       const formData = new FormData();
-      formData.append("activityId", activityId);
+      formData.append("activity", activityId);
       formData.append("name", data.name);
       formData.append("phone", data.phone);
       await onSubmit(formData);

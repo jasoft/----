@@ -158,6 +158,19 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
   deleteTestActivity: async ({ workerPb }, use) => {
     const deleteActivity = async (id: string): Promise<void> => {
       try {
+        // 先获取与活动关联的所有报名记录
+        const registrations = await workerPb
+          .collection("registrations")
+          .getList(1, 50, {
+            filter: `activity="${id}"`,
+          });
+
+        // 删除所有关联的报名记录
+        for (const registration of registrations.items) {
+          await workerPb.collection("registrations").delete(registration.id);
+        }
+
+        // 然后删除活动
         await workerPb.collection("activities").delete(id);
       } catch (error) {
         if (!(error instanceof ClientResponseError && error.status === 404)) {

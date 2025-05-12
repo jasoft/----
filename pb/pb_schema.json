@@ -125,9 +125,7 @@
     },
     "passwordAuth": {
       "enabled": true,
-      "identityFields": [
-        "email"
-      ]
+      "identityFields": ["email"]
     },
     "mfa": {
       "enabled": false,
@@ -360,10 +358,7 @@
     },
     "passwordAuth": {
       "enabled": true,
-      "identityFields": [
-        "email",
-        "username"
-      ]
+      "identityFields": ["email", "username"]
     },
     "mfa": {
       "enabled": false,
@@ -900,6 +895,19 @@
         "type": "bool"
       },
       {
+        "cascadeDelete": true,
+        "collectionId": "s19fbm1ivu7qtvq",
+        "hidden": false,
+        "id": "relation1407078887",
+        "maxSelect": 999,
+        "minSelect": 0,
+        "name": "registrations",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation"
+      },
+      {
         "hidden": false,
         "id": "autodate2990389176",
         "name": "created",
@@ -948,18 +956,17 @@
         "type": "text"
       },
       {
-        "autogeneratePattern": "",
+        "cascadeDelete": false,
+        "collectionId": "uhotet93tr7yj3j",
         "hidden": false,
-        "id": "4brlpmyn",
-        "max": 0,
-        "min": 0,
-        "name": "activityId",
-        "pattern": "",
+        "id": "relation_activity",
+        "maxSelect": 1,
+        "minSelect": 1,
+        "name": "activity",
         "presentable": false,
-        "primaryKey": false,
         "required": true,
         "system": false,
-        "type": "text"
+        "type": "relation"
       },
       {
         "autogeneratePattern": "",
@@ -997,6 +1004,19 @@
         "required": false,
         "system": false,
         "type": "bool"
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "uhotet93tr7yj3j",
+        "hidden": false,
+        "id": "relation2893285722",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "activity",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
       },
       {
         "hidden": false,

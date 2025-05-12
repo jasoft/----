@@ -16,6 +16,13 @@ export function Nav() {
     setMounted(true);
   }, []);
 
+  // 监听路由变化，更新管理员状态
+  React.useEffect(() => {
+    if (mounted) {
+      setIsAdmin(isAdministrator());
+    }
+  }, [pathname, mounted]);
+
   return (
     <nav className="border-b border-neutral-200">
       <div className="container mx-auto px-4">

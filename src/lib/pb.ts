@@ -130,9 +130,11 @@ export async function executeAuthenticatedOperation<T>(
 export function adminLogout() {
   const pb = getPocketBaseClientInstance();
   pb.authStore.clear();
+  console.log("authStoreCleared", pb.authStore.record);
 }
 
 export function isAdmin() {
   const pb = getPocketBaseClientInstance();
+  console.log("isAdmin", pb.authStore.record);
   return pb.authStore.record?.role === "admin";
 }

@@ -62,7 +62,7 @@ async function logError(context: string, error: unknown) {
 
 async function getActivity(activityId: string): Promise<Activity | null> {
   try {
-    const url = `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/activities/records/${activityId}`;
+    const url = `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/activities/records/${activityId}?expand=registrations`;
     console.log("Fetching activity:", url);
 
     const res = await fetch(url, {
@@ -83,68 +83,6 @@ async function getActivity(activityId: string): Promise<Activity | null> {
   } catch (error) {
     await logError("getActivity", error);
     return null;
-  }
-}
-
-async function getRegistrations(activityId: string): Promise<Registration[]> {
-  try {
-    // 使用正确的字段名 activityId
-    const filter = `(activityId="${activityId}")`;
-    const url = `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=${encodeURIComponent(filter)}`;
-    console.log("Fetching registrations:", url);
-
-    const res = await fetch(url, {
-      cache: "no-store",
-      next: { revalidate: 0 },
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`HTTP Error ${res.status}: ${errorText}`);
-    }
-
-    const data = (await res.json()) as PocketBaseListResponse<Registration>;
-    console.log("Registration data:", JSON.stringify(data, null, 2));
-
-    if (!data || !Array.isArray(data.items)) {
-      throw new Error(`Invalid registrations data: ${JSON.stringify(data)}`);
-    }
-
-    return data.items;
-  } catch (error) {
-    await logError("getRegistrations", error);
-    return [];
-  }
-}
-
-async function getWinners(activityId: string): Promise<Registration[]> {
-  try {
-    // 使用正确的字段名 activityId
-    const filter = `(activityId="${activityId}" && isWinner=true)`;
-    const url = `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records?filter=${encodeURIComponent(filter)}`;
-    console.log("Fetching winners:", url);
-
-    const res = await fetch(url, {
-      cache: "no-store",
-      next: { revalidate: 0 },
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`HTTP Error ${res.status}: ${errorText}`);
-    }
-
-    const data = (await res.json()) as PocketBaseListResponse<Registration>;
-    console.log("Winners data:", JSON.stringify(data, null, 2));
-
-    if (!data || !Array.isArray(data.items)) {
-      throw new Error(`Invalid winners data: ${JSON.stringify(data)}`);
-    }
-
-    return data.items;
-  } catch (error) {
-    await logError("getWinners", error);
-    return [];
   }
 }
 
@@ -175,11 +113,11 @@ export default async function ResultPage({ params }: Props) {
       deadline: deadline.toISOString(),
     });
 
-    // 获取报名和中签信息
-    const [registrations, winners] = await Promise.all([
-      getRegistrations(id),
-      isPending ? Promise.resolve([]) : getWinners(id),
-    ]);
+    // 从展开的registrations字段获取报名和中签信息
+    const registrations = activity.expand?.registrations ?? [];
+    const winners = isPending
+      ? []
+      : registrations.filter((reg) => reg.isWinner);
 
     console.log("Page data:", {
       registrationsCount: registrations.length,

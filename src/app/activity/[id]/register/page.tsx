@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { type Activity } from "~/lib/pb";
+import { activityService } from "~/services/activity";
 import { RegistrationForm } from "~/components/forms/registration-form";
 import { formatDate, isExpired } from "~/lib/utils";
 
@@ -7,17 +8,12 @@ async function getActivity(id: string | undefined): Promise<Activity | null> {
   if (!id) {
     return null;
   }
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/activities/records/${id}`,
-    { cache: "no-store" },
-  );
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch activity");
+  try {
+    return await activityService.getActivity(id);
+  } catch (error) {
+    console.error("Error fetching activity:", error);
+    return null;
   }
-
-  const data = (await res.json()) as Activity;
-  return data;
 }
 
 interface Props {
@@ -26,24 +22,10 @@ interface Props {
   };
 }
 
-interface ValidationError {
-  code: string;
-  message: string;
-}
-
-interface PocketBaseErrorResponse {
-  code: number;
-  message: string;
-  data: {
-    name?: ValidationError;
-    phone?: ValidationError;
-  };
-}
-
 export default async function RegisterPage({ params }: Props) {
   // 确保在访问params.id前先await params
   const resolvedParams = await Promise.resolve(params);
-  const activity = await getActivity(resolvedParams.id).catch(() => null);
+  const activity = await getActivity(resolvedParams.id);
 
   if (!activity) {
     notFound();
@@ -61,44 +43,29 @@ export default async function RegisterPage({ params }: Props) {
   async function handleRegistration(formData: FormData) {
     "use server";
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/registrations/records`,
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
-
-    if (!res.ok) {
-      const errorData = (await res.json().catch(() => ({
-        code: res.status,
-        message: res.statusText,
-        data: {},
-      }))) as PocketBaseErrorResponse;
-
-      // 详细的错误信息处理
-      if (errorData.data?.phone?.message) {
-        throw new Error(
-          `手机号码错误: ${errorData.data.phone.message}。请检查: 1. 是否是11位数字 2. 是否以1开头 3. 第二位是否在3-9之间`,
-        );
+    try {
+      await activityService.createRegistration(formData);
+    } catch (error) {
+      console.error("Registration error:", error);
+      if (error instanceof Error) {
+        const errorMsg = error.message;
+        if (errorMsg.includes("phone")) {
+          throw new Error(
+            "手机号码错误。请检查: 1. 是否是11位数字 2. 是否以1开头 3. 第二位是否在3-9之间",
+          );
+        }
+        if (errorMsg.includes("name")) {
+          throw new Error("姓名错误。姓名长度需要在2-20个字符之间");
+        }
+        if (errorMsg.includes("Failed to create record")) {
+          throw new Error(
+            "创建报名记录失败。可能原因: 1. 该手机号已报名 2. 活动已截止 3. 报名人数已满",
+          );
+        }
+        throw new Error(errorMsg || "提交报名失败。如果问题持续，请联系管理员");
       }
-      if (errorData.data?.name?.message) {
-        throw new Error(
-          `姓名错误: ${errorData.data.name.message}。姓名长度需要在2-20个字符之间`,
-        );
-      }
-      if (errorData.message.includes("Failed to create record")) {
-        throw new Error(
-          "创建报名记录失败。可能原因: 1. 该手机号已报名 2. 活动已截止 3. 报名人数已满",
-        );
-      }
-      throw new Error(
-        errorData.message || "提交报名失败。如果问题持续，请联系管理员",
-      );
+      throw error;
     }
-
-    // 确保响应体是合法的JSON
-    await res.json();
   }
 
   return (

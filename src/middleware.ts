@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getPocketBaseClientInstance, type AuthModel } from "./lib/pb";
-import { AdminAuth } from "./lib/auth";
 import type { AuthRecord } from "pocketbase";
 
 const COOKIE_NAME = "pb_auth";
@@ -23,7 +22,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // 如果是登录页面则允许访问
-  if (request.nextUrl.pathname === "/admin/login") {
+  if (
+    request.nextUrl.pathname === "/admin/login" ||
+    request.nextUrl.pathname === "/admin/logout"
+  ) {
     return NextResponse.next();
   }
 

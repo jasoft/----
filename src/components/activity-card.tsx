@@ -9,7 +9,7 @@ interface ActivityCardProps {
 
 export function ActivityCard({ activity }: ActivityCardProps) {
   const expired = isExpired(activity.deadline);
-  const registrationsCount = activity.expand?.registrations_count ?? 0;
+  const registrationsCount = activity.expand?.registrations?.length ?? 0;
 
   return (
     <div
@@ -44,15 +44,21 @@ export function ActivityCard({ activity }: ActivityCardProps) {
               <span>中签名额: {activity.winnersCount}人</span>
             </span>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto space-x-2">
             <a
-              href={`/activity/${activity.id}/${expired ? "result" : "register"}`}
-              className={`btn btn-sm ${
-                expired ? "btn-neutral" : "btn-primary"
-              }`}
+              href={`/activity/${activity.id}/result`}
+              className="btn btn-sm btn-outline"
             >
-              {expired ? "查看结果" : "立即报名"}
+              {expired ? "查看结果" : "查看报名"}
             </a>
+            {!expired && (
+              <a
+                href={`/activity/${activity.id}/register`}
+                className="btn btn-sm btn-primary"
+              >
+                立即报名
+              </a>
+            )}
           </div>
         </div>
       </div>

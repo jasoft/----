@@ -12,14 +12,6 @@ async function fillRegistrationForm(page: Page, data: RegistrationFormData) {
   await page.fill('[data-testid="registration-phone"]', data.phone);
 }
 
-// 辅助函数：执行退出登录
-async function logout(page: Page) {
-  // 点击退出登录按钮
-  await page.click('button:has-text("退出登录")');
-  // 等待页面刷新完成
-  await page.waitForURL("/");
-}
-
 test.describe("报名功能测试", () => {
   let testActivity: {
     id: string;
@@ -37,10 +29,11 @@ test.describe("报名功能测试", () => {
     });
   });
 
-  test.afterEach(async ({ deleteTestActivity }) => {
+  test.afterEach(async ({ testPage, deleteTestActivity }) => {
     if (testActivity?.id) {
       await deleteTestActivity(testActivity.id);
     }
+    await testPage.goto("/admin/logout");
   });
 
   test.describe("报名表单测试", () => {
@@ -102,11 +95,9 @@ test.describe("报名功能测试", () => {
   test.describe("重复报名测试", () => {
     test("不允许重复报名", async ({ testPage, pb }) => {
       // 先创建一个报名记录
-      await pb.collection("registrations").create({
-        activity: testActivity.id,
-        name: "张三",
-        phone: "13800138000",
-      });
+      const testPhone = `138${Math.floor(Math.random() * 100000000)
+        .toString()
+        .padStart(8, "0")}`;
 
       await testPage.goto(`/activity/${testActivity.id}/register`);
       await expect(
@@ -115,7 +106,16 @@ test.describe("报名功能测试", () => {
 
       await fillRegistrationForm(testPage, {
         name: "张三",
-        phone: "13800138000",
+        phone: testPhone,
+      });
+
+      await testPage.click('[data-testid="submit-registration"]');
+
+      //再创建一次
+      await testPage.goto(`/activity/${testActivity.id}/register`);
+      await fillRegistrationForm(testPage, {
+        name: "李四",
+        phone: testPhone,
       });
 
       await testPage.click('[data-testid="submit-registration"]');

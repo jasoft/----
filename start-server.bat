@@ -7,7 +7,7 @@ if not exist "pb" mkdir pb
 REM 如果不存在PocketBase可执行文件，下载它
 if not exist "pb\pocketbase.exe" (
     echo 下载 PocketBase...
-    curl -L https://github.com/pocketbase/pocketbase/releases/download/v0.27.2/pocketbase_0.27.2_windows_amd64.zip -o pb\pocketbase.zip
+    curl -L https://github.com/pocketbase/pocketbase/releases/download/v0.28.0/pocketbase_0.28.0_windows_amd64.zip -o pb\pocketbase.zip
     cd pb
     tar -xf pocketbase.zip
     del pocketbase.zip
