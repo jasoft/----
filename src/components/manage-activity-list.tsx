@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import type { Activity } from "~/lib/pb";
 import { Dialog } from "~/components/ui/dialog";
 import { activityService } from "~/services/activity";

@@ -150,16 +150,6 @@ export default function AdminPage() {
     return result;
   };
 
-  // 统计数据计算
-  const stats = {
-    total: activities.length,
-    active: activities.filter((a) => new Date(a.deadline) > new Date()).length,
-    totalRegistrations: activities.reduce(
-      (sum, a) => sum + (a.expand?.registrations_count ?? 0),
-      0,
-    ),
-  };
-
   const processedActivities = processActivities(activities);
 
   return (
@@ -170,24 +160,6 @@ export default function AdminPage() {
           <Link href="/admin/new" className="btn btn-primary">
             创建活动
           </Link>
-        </div>
-
-        {/* 数据统计 */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-medium text-neutral-500">活动总数</h3>
-            <p className="mt-1 text-2xl font-bold">{stats.total}</p>
-          </div>
-          <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-medium text-neutral-500">进行中活动</h3>
-            <p className="mt-1 text-2xl font-bold">{stats.active}</p>
-          </div>
-          <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-medium text-neutral-500">总报名人数</h3>
-            <p className="mt-1 text-2xl font-bold">
-              {stats.totalRegistrations}
-            </p>
-          </div>
         </div>
 
         {/* 筛选和排序工具栏 */}

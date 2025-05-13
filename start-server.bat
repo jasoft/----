@@ -14,6 +14,6 @@ if not exist "pb\pocketbase.exe" (
     cd ..
 )
 
-REM 启动PocketBase
+REM 启动PocketBase，监听所有网络接口
 cd pb
-start pocketbase serve
+start pocketbase serve --http="0.0.0.0:8090"

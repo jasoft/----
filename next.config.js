@@ -17,6 +17,7 @@ const config = {
     ],
   },
   productionBrowserSourceMaps: true,
+  allowedDevOrigins: ["192.168.1.150", "*.soj.myds.me"],
 };
 
 export default config;

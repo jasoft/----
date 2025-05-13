@@ -33,7 +33,6 @@ export function LoginForm() {
       // 登录成功后重定向
       const from = searchParams.get("from") ?? "/admin";
       router.replace(from);
-      router.refresh();
     } catch (err) {
       let message = "登录失败";
       if (err instanceof Error) {

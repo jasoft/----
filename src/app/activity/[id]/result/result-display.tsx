@@ -74,11 +74,7 @@ export function ResultDisplay({
 
       {mounted && (
         <div className="space-y-6">
-          {isPending ? (
-            <div className="rounded-lg bg-yellow-50 p-6 text-center text-yellow-800">
-              抽签结果将在 {formattedDeadline} 后公布
-            </div>
-          ) : registrationCount > 0 ? (
+          {registrationCount > 0 ? (
             <>
               <div>
                 <h2 className="mb-4 text-xl font-bold">所有报名者</h2>
@@ -101,34 +97,45 @@ export function ResultDisplay({
                 </div>
               </div>
 
-              <div>
-                <h2 className="mb-4 text-xl font-bold">抽签结果</h2>
-                <div className="border-primary bg-primary/5 rounded-lg border p-6">
-                  <div className="mb-4 text-center text-sm text-neutral-600">
-                    共 {registrationCount} 人报名，{winnerCount} 人中签 （中签率{" "}
-                    {Math.round((winnerCount / registrationCount) * 100)}%）
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-4">
-                    {winners.map((winner, index) => (
-                      <div
-                        key={winner.id}
-                        className="rounded-lg bg-white p-4 text-center shadow-sm"
-                        data-testid="winner-row"
-                      >
-                        <div className="mb-2 text-2xl">🎉</div>
-                        <div className="text-lg font-medium">{winner.name}</div>
-                        <div className="mt-1 text-sm text-neutral-500">
-                          中签序号 {index + 1}
+              {!isPending && (
+                <div>
+                  <h2 className="mb-4 text-xl font-bold">抽签结果</h2>
+                  <div className="border-primary bg-primary/5 rounded-lg border p-6">
+                    <div className="mb-4 text-center text-sm text-neutral-600">
+                      共 {registrationCount} 人报名，{winnerCount} 人中签
+                      （中签率{" "}
+                      {Math.round((winnerCount / registrationCount) * 100)}%）
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-4">
+                      {winners.map((winner, index) => (
+                        <div
+                          key={winner.id}
+                          className="rounded-lg bg-white p-4 text-center shadow-sm"
+                          data-testid="winner-row"
+                        >
+                          <div className="mb-2 text-2xl">🎉</div>
+                          <div className="text-lg font-medium">
+                            {winner.name}
+                          </div>
+                          <div className="mt-1 text-sm text-neutral-500">
+                            中签序号 {index + 1}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </>
           ) : (
             <div className="rounded-lg bg-neutral-50 p-6 text-center text-neutral-600">
               活动暂无报名，无法进行抽签
+            </div>
+          )}
+
+          {isPending && (
+            <div className="rounded-lg bg-yellow-50 p-6 text-center text-yellow-800">
+              抽签结果将在 {formattedDeadline} 后公布
             </div>
           )}
         </div>
