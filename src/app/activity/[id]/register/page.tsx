@@ -17,15 +17,14 @@ async function getActivity(id: string | undefined): Promise<Activity | null> {
 }
 
 interface Props {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function RegisterPage({ params }: Props) {
-  // 确保在访问params.id前先await params
-  const resolvedParams = await Promise.resolve(params);
-  const activity = await getActivity(resolvedParams.id);
+  const { id } = await params;
+  const activity = await getActivity(id);
 
   if (!activity) {
     notFound();

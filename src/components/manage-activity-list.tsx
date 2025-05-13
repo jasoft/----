@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Activity } from "~/lib/pb";
 import { Dialog } from "~/components/ui/dialog";
 import { activityService } from "~/services/activity";
-import { formatDate } from "~/lib/utils";
+import { formatDate, isExpired, getTimeLeft } from "~/lib/utils";
 import { useToast } from "~/components/ui/toast";
 
 interface ManageActivityListProps {
@@ -17,42 +17,22 @@ export function ManageActivityList({
   activities,
   onDeleted,
 }: ManageActivityListProps) {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { showToast } = useToast();
 
-  const handleDelete = async (id: string) => {
-    try {
-      await activityService.deleteActivity(id);
-      const activity = activities.find((a) => a.id === id);
-      showToast(`活动"${activity?.title ?? ""}"已删除`, "success");
-      onDeleted?.();
-    } catch (error) {
-      showToast(
-        error instanceof Error ? error.message : "活动删除失败",
-        "error",
-      );
-    }
-  };
-
-  const handleBatchDelete = async () => {
+  const handleDelete = async (activity: Activity) => {
     const confirmed = await Dialog.confirm(
-      "确认批量删除",
-      `确定要删除选中的 ${selectedIds.length} 个活动吗？此操作不可恢复。`,
+      "确认删除",
+      `确定要删除活动"${activity.title}"吗？此操作不可恢复。`,
     );
 
     if (confirmed) {
       try {
-        await Promise.all(
-          selectedIds.map((id) => activityService.deleteActivity(id)),
-        );
-        // 等待对话框消失
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        showToast("选中的活动已成功删除", "success");
-        setSelectedIds([]);
+        await activityService.deleteActivity(activity.id);
+        showToast(`活动"${activity.title}"已删除`, "success");
         onDeleted?.();
       } catch (error) {
         showToast(
-          error instanceof Error ? error.message : "批量删除失败",
+          error instanceof Error ? error.message : "活动删除失败",
           "error",
         );
       }
@@ -69,28 +49,6 @@ export function ManageActivityList({
         `活动已${activity.isPublished ? "取消发布" : "发布"}`,
         "success",
       );
-      onDeleted?.();
-    } catch (error) {
-      showToast(
-        error instanceof Error ? error.message : "状态更新失败",
-        "error",
-      );
-    }
-  };
-
-  const handleToggleStatus = async (activity: Activity) => {
-    try {
-      const now = new Date();
-      const deadline = new Date(activity.deadline);
-      const isActive = deadline > now;
-
-      await activityService.updateActivity(activity.id, {
-        deadline: isActive
-          ? new Date(now.getTime() - 1000).toISOString()
-          : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-      });
-
-      showToast(`活动已${isActive ? "结束" : "开启"}`, "success");
       onDeleted?.();
     } catch (error) {
       showToast(
@@ -117,207 +75,130 @@ export function ManageActivityList({
     }
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    setSelectedIds(checked ? activities.map((a) => a.id) : []);
-  };
-
-  const handleSelectOne = (activityId: string, checked: boolean) => {
-    setSelectedIds((prev) =>
-      checked ? [...prev, activityId] : prev.filter((id) => id !== activityId),
-    );
-  };
-
   return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white shadow lg:overflow-visible">
-        {selectedIds.length > 0 && (
-          <div className="sticky top-0 z-10 border-b border-neutral-200 bg-neutral-50 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-neutral-600">
-                已选择 {selectedIds.length} 个活动
-              </span>
-              <button
-                onClick={() => void handleBatchDelete()}
-                className="btn btn-sm btn-error"
-              >
-                批量删除
-              </button>
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {activities.map((activity) => {
+        const expired = isExpired(activity.deadline);
+        const registrations = activity.expand?.registrations ?? [];
+        const registrationsCount = registrations.length;
+
+        return (
+          <div
+            key={activity.id}
+            data-testid={`activity-${activity.id}`}
+            className={`card shadow-xl ${
+              expired ? "bg-neutral-100" : "bg-base-100"
+            }`}
+          >
+            <div className="card-body">
+              <div className="flex items-center justify-between">
+                <h2 className="card-title">{activity.title}</h2>
+                <span
+                  className={`badge ${
+                    activity.isPublished ? "badge-primary" : "badge-ghost"
+                  }`}
+                >
+                  {activity.isPublished ? "已发布" : "未发布"}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-sm text-neutral-500">
+                  截止时间: {formatDate(activity.deadline)}
+                </p>
+                <p
+                  className={`text-sm ${
+                    expired ? "text-neutral-500" : "text-primary"
+                  }`}
+                >
+                  {getTimeLeft(activity.deadline)}
+                </p>
+              </div>
+
+              <p className="line-clamp-3 text-sm text-neutral-600">
+                {activity.content}
+              </p>
+
+              <div className="flex items-center gap-4 text-sm text-neutral-500">
+                <span className="flex items-center gap-1">
+                  <span>👥</span>
+                  <span>已报名: {registrationsCount}人</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span>🎯</span>
+                  <span>中签名额: {activity.winnersCount}人</span>
+                </span>
+              </div>
+
+              {registrationsCount > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium text-neutral-600">
+                    报名者：
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {registrations.map((reg) => (
+                      <span
+                        key={reg.id}
+                        className="badge badge-sm badge-ghost"
+                        title={reg.phone}
+                      >
+                        {reg.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="card-actions mt-4 flex flex-wrap gap-2">
+                <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
+                  <a
+                    href={`/activity/${activity.id}/result`}
+                    className="btn btn-sm btn-info w-full"
+                  >
+                    查看结果
+                  </a>
+                  <a
+                    href={`/admin/${activity.id}`}
+                    className="btn btn-sm btn-secondary w-full"
+                  >
+                    编辑活动
+                  </a>
+                  <button
+                    onClick={() => void handleTogglePublish(activity)}
+                    className={`btn btn-sm w-full ${
+                      activity.isPublished ? "btn-warning" : "btn-success"
+                    }`}
+                  >
+                    {activity.isPublished ? "停止发布" : "开始发布"}
+                  </button>
+                  {expired && registrationsCount > 0 && (
+                    <button
+                      onClick={() => void handleDraw(activity)}
+                      className="btn btn-sm btn-primary w-full"
+                      data-testid={`draw-activity-${activity.id}`}
+                    >
+                      执行抽签
+                    </button>
+                  )}
+                  <button
+                    onClick={() => void handleDelete(activity)}
+                    className="btn btn-sm btn-error w-full"
+                    data-testid={`delete-activity-${activity.id}`}
+                  >
+                    删除活动
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        )}
+        );
+      })}
 
-        <table className="table min-w-full table-fixed">
-          <thead className="bg-neutral-50">
-            <tr>
-              <th className="w-16">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={selectedIds.length === activities.length}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                />
-              </th>
-              <th className="w-1/4">活动信息</th>
-              <th className="w-32">报名情况</th>
-              <th className="w-48">时间信息</th>
-              <th className="w-24">进行状态</th>
-              <th className="w-24">发布状态</th>
-              <th className="w-56">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {activities.map((activity) => {
-              const now = new Date();
-              const deadline = new Date(activity.deadline);
-              const isActive = deadline > now;
-              const registrationCount =
-                activity.expand?.registrations_count ?? 0;
-
-              return (
-                <tr
-                  key={activity.id}
-                  data-testid={`activity-${activity.id}`}
-                  className="border-b border-neutral-200 hover:bg-neutral-50"
-                >
-                  <td>
-                    <input
-                      type="checkbox"
-                      className="checkbox"
-                      checked={selectedIds.includes(activity.id)}
-                      onChange={(e) =>
-                        handleSelectOne(activity.id, e.target.checked)
-                      }
-                    />
-                  </td>
-                  <td>
-                    <div className="max-w-md">
-                      <div className="font-medium">{activity.title}</div>
-                      <div className="mt-1 line-clamp-2 text-sm text-neutral-500">
-                        {activity.content}
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1">
-                        <span className="text-lg font-medium">
-                          {registrationCount}
-                        </span>
-                        <span className="text-sm text-neutral-500">
-                          / {activity.winnersCount}
-                        </span>
-                      </div>
-                      <div className="text-sm text-neutral-500">
-                        {Math.round(
-                          (registrationCount / activity.winnersCount) * 100,
-                        )}
-                        % 已报名
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="space-y-1">
-                      <div className="text-sm">
-                        <span className="text-neutral-500">创建：</span>
-                        {formatDate(activity.created)}
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-neutral-500">截止：</span>
-                        {formatDate(activity.deadline)}
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-                        isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-neutral-100 text-neutral-800"
-                      }`}
-                    >
-                      {isActive ? "进行中" : "已结束"}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-                        activity.isPublished
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-neutral-100 text-neutral-800"
-                      }`}
-                    >
-                      {activity.isPublished ? "已发布" : "未发布"}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/admin/${activity.id}`}
-                        className="btn btn-sm btn-ghost"
-                      >
-                        编辑
-                      </Link>
-                      <Link
-                        href={`/activity/${activity.id}/result`}
-                        className="btn btn-sm btn-info"
-                      >
-                        查看结果
-                      </Link>
-                      <button
-                        onClick={() => void handleTogglePublish(activity)}
-                        className={`btn btn-sm ${
-                          activity.isPublished ? "btn-warning" : "btn-success"
-                        }`}
-                      >
-                        {activity.isPublished ? "取消发布" : "发布"}
-                      </button>
-                      <button
-                        onClick={() => void handleToggleStatus(activity)}
-                        className={`btn btn-sm ${
-                          isActive ? "btn-warning" : "btn-success"
-                        }`}
-                      >
-                        {isActive ? "结束" : "开启"}
-                      </button>
-                      {!isActive && (
-                        <button
-                          onClick={() => void handleDraw(activity)}
-                          className="btn btn-sm btn-primary"
-                          data-testid={`draw-activity-${activity.id}`}
-                        >
-                          抽签
-                        </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          void Dialog.confirm(
-                            "确认删除",
-                            `确定要删除活动"${activity.title}"吗？此操作不可恢复。`,
-                          ).then((confirmed) => {
-                            if (confirmed) {
-                              void handleDelete(activity.id);
-                            }
-                          });
-                        }}
-                        className="btn btn-sm btn-error"
-                        data-testid={`delete-activity-${activity.id}`}
-                      >
-                        删除
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {activities.length === 0 && (
-          <div className="p-8 text-center">
-            <p className="text-neutral-600">暂无活动数据</p>
-          </div>
-        )}
-      </div>
+      {activities.length === 0 && (
+        <div className="col-span-full rounded-lg bg-neutral-50 p-8 text-center">
+          <p className="text-neutral-600">暂无活动数据</p>
+        </div>
+      )}
     </div>
   );
 }
