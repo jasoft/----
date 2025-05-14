@@ -66,21 +66,20 @@ export class ActivityService {
    * 获取活动详情
    */
   async getActivity(id: string) {
-    return executeAuthenticatedOperation(async () => {
-      try {
-        const record = await this.pb
-          .collection(Collections.ACTIVITIES)
-          .getOne<Activity>(id, {
-            expand: "registrations",
-          });
-        return record;
-      } catch (error) {
-        if (error instanceof Error) {
-          throw new Error(`获取活动失败: ${error.message}`);
-        }
-        throw error;
+    try {
+      const record = await this.pb
+        .collection(Collections.ACTIVITIES)
+        .getOne<Activity>(id, {
+          expand: "registrations",
+          $autoCancel: false,
+        });
+      return record;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`获取活动失败: ${error.message}`);
       }
-    });
+      throw error;
+    }
   }
 
   /**
@@ -133,96 +132,98 @@ export class ActivityService {
   async createRegistration(data: FormData) {
     const activityId = data.get("activity") as string;
 
-    try {
-      console.log(data); // 保留用户添加的日志
-      if (!activityId) {
-        throw new Error("活动 ID 不能为空，无法创建报名。");
-      }
-
-      // 创建报名记录
-      const registrationData = {
-        activity: activityId,
-        name: data.get("name"),
-        phone: data.get("phone"),
-      };
-
-      let newRegistration;
+    return executeAuthenticatedOperation(async () => {
       try {
-        newRegistration = await this.pb
-          .collection(Collections.REGISTRATIONS)
-          .create(registrationData);
-      } catch (createError) {
-        let message = "创建报名实体时出错";
-        if (createError instanceof Error) {
-          message += `: ${createError.message}`;
+        console.log(data); // 保留用户添加的日志
+        if (!activityId) {
+          throw new Error("活动 ID 不能为空，无法创建报名。");
         }
-        // 检查 PocketBase 特定的 ClientResponseError 错误（通常包含 status 属性）
-        // "The requested resource wasn't found." 错误可能在此处发生，如果 activityId 对关联无效。
-        if (
-          createError &&
-          typeof createError === "object" &&
-          "status" in createError &&
-          createError.status === 404
-        ) {
-          message = `关联的活动 (ID: ${activityId}) 未找到。`;
-        }
-        console.error(
-          "Registration entity creation error details:",
-          createError,
-        );
-        throw new Error(
-          `创建报名记录失败 (步骤1/2 - 创建报名条目): ${message}`,
-        );
-      }
 
-      // 更新活动的 registrations 字段
-      try {
-        await this.pb
-          .collection(Collections.ACTIVITIES)
-          .update(activityId, { "+registrations": newRegistration.id }); // 修正此处的键名
-      } catch (updateError) {
-        let message = `更新活动 (ID: ${activityId}) 的报名列表时出错`;
-        if (updateError instanceof Error) {
-          message += `: ${updateError.message}`;
-        }
-        // 如果活动ID在更新时未找到
-        if (
-          updateError &&
-          typeof updateError === "object" &&
-          "status" in updateError &&
-          updateError.status === 404
-        ) {
-          message = `关联的活动 (ID: ${activityId}) 未找到，无法更新其报名列表。`;
-        }
-        console.error("Activity update error details:", updateError);
-        // 注意：如果此步骤失败，报名记录已创建但未成功关联回活动。
-        // 可能需要补偿事务（例如删除 newRegistration）。目前仅抛出更清晰的错误。
-        throw new Error(
-          `创建报名记录失败 (步骤2/2 - 更新活动列表): ${message}`,
-        );
-      }
+        // 创建报名记录
+        const registrationData = {
+          activity: activityId,
+          name: data.get("name"),
+          phone: data.get("phone"),
+        };
 
-      return newRegistration;
-    } catch (error) {
-      // 此处捕获来自初始 activityId 检查的错误，或内部 catch 块抛出的已格式化错误。
-      if (error instanceof Error) {
-        // 如果错误消息已表明它来自我们特定的处理程序，则直接重新抛出。
-        if (
-          error.message.includes("创建报名记录失败") ||
-          error.message.includes("活动 ID 不能为空")
-        ) {
-          console.error("Registration processing error:", error.message);
-          throw error;
+        let newRegistration;
+        try {
+          newRegistration = await this.pb
+            .collection(Collections.REGISTRATIONS)
+            .create(registrationData);
+        } catch (createError) {
+          let message = "创建报名实体时出错";
+          if (createError instanceof Error) {
+            message += `: ${createError.message}`;
+          }
+          // 检查 PocketBase 特定的 ClientResponseError 错误（通常包含 status 属性）
+          // "The requested resource wasn't found." 错误可能在此处发生，如果 activityId 对关联无效。
+          if (
+            createError &&
+            typeof createError === "object" &&
+            "status" in createError &&
+            createError.status === 404
+          ) {
+            message = `关联的活动 (ID: ${activityId}) 未找到。`;
+          }
+          console.error(
+            "Registration entity creation error details:",
+            createError,
+          );
+          throw new Error(
+            `创建报名记录失败 (步骤1/2 - 创建报名条目): ${message}`,
+          );
         }
-        // 对于在此处捕获的其他类型的错误（例如，内部 try-catch 之前的编程错误）
-        console.error("Generic error in createRegistration:", error);
-        throw new Error(`创建报名记录时发生意外错误: ${error.message}`);
-      }
 
-      // 处理非 Error 对象的抛出情况
-      console.error("Unknown error object in createRegistration:", error);
-      throw new Error("创建报名记录时发生未知类型的错误。");
-    }
+        // 更新活动的 registrations 字段
+        try {
+          await this.pb
+            .collection(Collections.ACTIVITIES)
+            .update(activityId, { "+registrations": newRegistration.id }); // 修正此处的键名
+        } catch (updateError) {
+          let message = `更新活动 (ID: ${activityId}) 的报名列表时出错`;
+          if (updateError instanceof Error) {
+            message += `: ${updateError.message}`;
+          }
+          // 如果活动ID在更新时未找到
+          if (
+            updateError &&
+            typeof updateError === "object" &&
+            "status" in updateError &&
+            updateError.status === 404
+          ) {
+            message = `关联的活动 (ID: ${activityId}) 未找到，无法更新其报名列表。`;
+          }
+          console.error("Activity update error details:", updateError);
+          // 注意：如果此步骤失败，报名记录已创建但未成功关联回活动。
+          // 可能需要补偿事务（例如删除 newRegistration）。目前仅抛出更清晰的错误。
+          throw new Error(
+            `创建报名记录失败 (步骤2/2 - 更新活动列表): ${message}`,
+          );
+        }
+
+        return newRegistration;
+      } catch (error) {
+        // 此处捕获来自初始 activityId 检查的错误，或内部 catch 块抛出的已格式化错误。
+        if (error instanceof Error) {
+          // 如果错误消息已表明它来自我们特定的处理程序，则直接重新抛出。
+          if (
+            error.message.includes("创建报名记录失败") ||
+            error.message.includes("活动 ID 不能为空")
+          ) {
+            console.error("Registration processing error:", error.message);
+            throw error;
+          }
+          // 对于在此处捕获的其他类型的错误（例如，内部 try-catch 之前的编程错误）
+          console.error("Generic error in createRegistration:", error);
+          throw new Error(`创建报名记录时发生意外错误: ${error.message}`);
+        }
+
+        // 处理非 Error 对象的抛出情况
+        console.error("Unknown error object in createRegistration:", error);
+        throw new Error("创建报名记录时发生未知类型的错误。");
+      }
+    });
   }
 
   /**

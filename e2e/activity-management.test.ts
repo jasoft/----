@@ -40,16 +40,11 @@ async function fillActivityForm(page: Page, data: ActivityFormData) {
 
 test.describe("活动管理测试", () => {
   test.describe("创建活动", () => {
-    test.beforeEach(async ({ testPage: page }) => {
+    test.beforeEach(async ({ authedPage: page }) => {
       await page.goto("/admin/new");
       await expect(page.locator('[data-testid="activity-form"]')).toBeVisible();
     });
-
-    test.afterEach(async ({ testPage: page }) => {
-      await page.goto("/admin/logout");
-    });
-
-    test("成功创建活动", async ({ testPage: page }) => {
+    test("成功创建活动", async ({ authedPage: page }) => {
       const testTitle = `测试活动-${Date.now()}`;
       const testContent = "这是一个测试活动的详细描述";
 
@@ -61,17 +56,16 @@ test.describe("活动管理测试", () => {
       });
 
       // 点击提交并等待导航
-      await Promise.all([
-        page.waitForNavigation(),
-        page.click('button[type="submit"]'),
-      ]);
+      await page.click('button[type="submit"]');
 
       // 验证活动显示在列表中
+      // 等待页面加载完成
+      // 验证活动已成功创建并显示在页面中
       await expect(page.locator("main")).toContainText(testTitle);
       await expect(page.locator("main")).toContainText(testContent);
     });
 
-    test("表单验证 - 空字段", async ({ testPage: page }) => {
+    test("表单验证 - 空字段", async ({ authedPage: page }) => {
       await page.click('button[type="submit"]');
 
       // 等待并验证所有错误提示
@@ -89,7 +83,7 @@ test.describe("活动管理测试", () => {
       ).toContainText("最大报名人数不能为空");
     });
 
-    test("表单验证 - 过期时间", async ({ testPage: page }) => {
+    test("表单验证 - 过期时间", async ({ authedPage: page }) => {
       // 创建一个过去的时间（当前时间前1小时）
       const pastDate = new Date();
       pastDate.setHours(pastDate.getHours() - 1);
@@ -108,7 +102,7 @@ test.describe("活动管理测试", () => {
       ).toContainText("截止时间必须是未来时间");
     });
 
-    test("表单验证 - 最大报名人数限制", async ({ testPage: page }) => {
+    test("表单验证 - 最大报名人数限制", async ({ authedPage: page }) => {
       // 测试小于1的情况
       await fillActivityForm(page, {
         title: "测试活动",
@@ -146,7 +140,7 @@ test.describe("活动管理测试", () => {
       ).toContainText("最大报名人数必须大于或等于中签人数");
     });
 
-    test("表单验证 - 中签人数限制", async ({ testPage: page }) => {
+    test("表单验证 - 中签人数限制", async ({ authedPage: page }) => {
       // 测试小于1的情况
       await fillActivityForm(page, {
         title: "测试活动",
@@ -184,7 +178,7 @@ test.describe("活动管理测试", () => {
 
   test.describe("修改活动", () => {
     test("成功修改活动信息", async ({
-      testPage: page,
+      authedPage: page,
       createTestActivity,
       deleteTestActivity,
     }) => {
@@ -219,7 +213,7 @@ test.describe("活动管理测试", () => {
 
   test.describe("结果查看", () => {
     test("查看活动结果", async ({
-      testPage: page,
+      authedPage: page,
       createTestActivity,
       deleteTestActivity,
     }) => {
@@ -249,7 +243,7 @@ test.describe("活动管理测试", () => {
 
   test.describe("抽签功能", () => {
     test("未过期活动不显示抽签按钮", async ({
-      testPage: page,
+      authedPage: page,
       createTestActivity,
       deleteTestActivity,
     }) => {
@@ -270,7 +264,7 @@ test.describe("活动管理测试", () => {
     });
 
     test("过期活动可以抽签", async ({
-      testPage: page,
+      authedPage: page,
       pb,
       createTestActivity,
       deleteTestActivity,
@@ -330,7 +324,7 @@ test.describe("活动管理测试", () => {
   });
 
   test.describe("删除活动", () => {
-    test("成功删除活动", async ({ testPage: page, createTestActivity }) => {
+    test("成功删除活动", async ({ authedPage: page, createTestActivity }) => {
       // 使用 fixture 创建测试活动
       const activity = await createTestActivity();
       await page.goto("/admin");
@@ -357,7 +351,7 @@ test.describe("活动管理测试", () => {
     });
 
     test("取消删除活动", async ({
-      testPage: page,
+      authedPage: page,
       createTestActivity,
       deleteTestActivity,
     }) => {

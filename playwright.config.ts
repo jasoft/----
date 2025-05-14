@@ -19,9 +19,11 @@ export default defineConfig({
     navigationTimeout: 10000,
   },
   projects: [
+    { name: "setup clerk", testMatch: /global\.setup\.ts/ },
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup clerk"],
     },
   ],
   webServer: {

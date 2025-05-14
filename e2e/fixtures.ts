@@ -5,7 +5,8 @@ import {
   type TestType,
 } from "@playwright/test";
 import PocketBase, { ClientResponseError } from "pocketbase";
-import type { AuthModel } from "~/lib/pb";
+import { setupClerkTestingToken } from "@clerk/testing/playwright";
+import { clerk } from "@clerk/testing/playwright";
 
 export interface TestActivity {
   id: string;
@@ -21,10 +22,12 @@ export interface TestActivity {
 
 // 每个测试用例的固定装置
 export interface TestFixtures {
-  testPage: Page;
+  page: Page;
+  authedPage: Page;
   pb: PocketBase;
   createTestActivity: (data?: Partial<TestActivity>) => Promise<TestActivity>;
   deleteTestActivity: (id: string) => Promise<void>;
+  login: (page: Page) => Promise<void>;
 }
 
 // Worker 级别的固定装置
@@ -42,16 +45,15 @@ const DEFAULT_TEST_ACTIVITY = {
   isPublished: true,
 };
 
-// 管理员登录信息
-const ADMIN_USERNAME = process.env.TEST_ADMIN_USERNAME;
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD;
+// 测试用户登录信息
+const TEST_USER_NAME = process.env.TEST_USER_NAME;
+const TEST_USER_PASSWORD = process.env.TEST_USER_PASSWORD;
 
-if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
+if (!TEST_USER_NAME || !TEST_USER_PASSWORD) {
   throw new Error(
     "请在 .env.test 文件中配置以下环境变量:\n" +
-      "TEST_ADMIN_USERNAME - 管理员用户名\n" +
-      "TEST_ADMIN_PASSWORD - 管理员密码\n" +
-      "注意：该用户必须具有管理员权限(role=admin)",
+      "TEST_USER_NAME - 测试用户邮箱\n" +
+      "TEST_USER_PASSWORD - 测试用户密码",
   );
 }
 
@@ -62,51 +64,36 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
   workerPb: [
     async ({}, use) => {
       const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
-
-      try {
-        // 使用管理员用户账号登录
-        const authData = await pb
-          .collection("users")
-          .authWithPassword(ADMIN_USERNAME, ADMIN_PASSWORD);
-
-        if (!pb.authStore.isValid) {
-          throw new Error("管理员认证失败");
-        }
-
-        const model = authData.record as AuthModel;
-        console.log("[Fixture] Worker PB 认证成功:", {
-          model: {
-            id: model.id,
-            username: model.username,
-            role: model.role,
-          },
-        });
-      } catch (error) {
-        console.error("管理员登录失败:", error);
-        throw error;
-      }
-
       await use(pb);
-
-      // 清理认证状态
-      pb.authStore.clear();
     },
     { scope: "worker" },
   ],
 
-  // 页面实例
-  testPage: async ({ page }, use) => {
-    // 导航到管理后台前先登录
-    await page.goto("/admin/login");
+  // 登录辅助函数
+  login: async ({}, use) => {
+    const loginHelper = async (page: Page) => {
+      await setupClerkTestingToken({ page });
+      await page.goto("/sign-in");
+      await clerk.signIn({
+        page,
+        signInParams: {
+          strategy: "password",
+          password: TEST_USER_PASSWORD,
+          identifier: TEST_USER_NAME,
+        },
+      });
+    };
+    await use(loginHelper);
+  },
 
-    // 填写登录表单
-    await page.fill('input[id="username"]', ADMIN_USERNAME);
-    await page.fill('input[id="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
+  // 基础页面实例（不带登录状态）
+  page: async ({ page }, use) => {
+    await use(page);
+  },
 
-    // 等待登录成功并跳转
-    await page.waitForURL("/admin**");
-
+  // 已登录的页面实例
+  authedPage: async ({ page, login }, use) => {
+    await login(page);
     await use(page);
   },
 
@@ -182,6 +169,7 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
     await use(deleteActivity);
   },
 });
+
 /* eslint-enable react-hooks/rules-of-hooks */
 
 // PocketBase 活动记录类型

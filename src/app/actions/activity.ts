@@ -6,6 +6,7 @@ import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { revalidatePath } from "next/cache";
 import { activityService } from "~/services/activity";
+import type { Activity } from "~/lib/pb";
 
 // 配置dayjs使用时区
 dayjs.extend(utc);
@@ -64,13 +65,21 @@ export type ActionResult<T = void> =
       error: string;
     };
 
-export async function createActivity(formData: FormData) {
+export async function createActivity(formData: FormData): Promise<Activity> {
   try {
     // 从表单数据中提取值
+    const deadlineLocal = formData.get("deadline") as string;
+    if (!deadlineLocal) {
+      throw new Error("截止时间不能为空");
+    }
+
+    // 将本地时间转换为UTC时间
+    const deadlineUTC = dayjs(deadlineLocal).tz(TIMEZONE).utc().format();
+
     const rawData = {
-      title: formData.get("title"),
-      content: formData.get("content"),
-      deadline: formData.get("deadline"),
+      title: formData.get("title") as string,
+      content: formData.get("content") as string,
+      deadline: deadlineUTC,
       winnersCount: Number(formData.get("winnersCount")),
       maxRegistrants: Number(formData.get("maxRegistrants")),
       isPublished: formData.get("isPublished") === "on",
@@ -80,10 +89,12 @@ export async function createActivity(formData: FormData) {
     const validatedData = activitySchema.parse(rawData);
 
     // 保存活动到数据库
-    await activityService.createActivity(validatedData);
+    const activity = await activityService.createActivity(validatedData);
 
     // 重新验证活动列表页面
     revalidatePath("/admin");
+
+    return activity;
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new Error(error.errors[0]?.message ?? "表单数据验证失败");
@@ -92,13 +103,24 @@ export async function createActivity(formData: FormData) {
   }
 }
 
-export async function updateActivity(id: string, formData: FormData) {
+export async function updateActivity(
+  id: string,
+  formData: FormData,
+): Promise<Activity> {
   try {
     // 从表单数据中提取值
+    const deadlineLocal = formData.get("deadline") as string;
+    if (!deadlineLocal) {
+      throw new Error("截止时间不能为空");
+    }
+
+    // 将本地时间转换为UTC时间
+    const deadlineUTC = dayjs(deadlineLocal).tz(TIMEZONE).utc().format();
+
     const rawData = {
-      title: formData.get("title"),
-      content: formData.get("content"),
-      deadline: formData.get("deadline"),
+      title: formData.get("title") as string,
+      content: formData.get("content") as string,
+      deadline: deadlineUTC,
       winnersCount: Number(formData.get("winnersCount")),
       maxRegistrants: Number(formData.get("maxRegistrants")),
       isPublished: formData.get("isPublished") === "on",
@@ -108,11 +130,13 @@ export async function updateActivity(id: string, formData: FormData) {
     const validatedData = activitySchema.parse(rawData);
 
     // 更新数据库中的活动
-    await activityService.updateActivity(id, validatedData);
+    const activity = await activityService.updateActivity(id, validatedData);
 
     // 重新验证活动列表和详情页面
     revalidatePath("/admin");
     revalidatePath(`/admin/${id}`);
+
+    return activity;
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new Error(error.errors[0]?.message ?? "表单数据验证失败");

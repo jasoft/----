@@ -1,14 +1,14 @@
 "use client";
 
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { cn } from "~/lib/utils";
 import { Input } from "~/components/ui/input";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { createActivity, updateActivity } from "~/app/actions/activity";
-import { useRouter } from "next/navigation";
-import type { ActivityFormData } from "~/app/actions/activity";
-import { SubmitButton } from "~/components/ui/submit-button";
+
 // 配置dayjs使用时区
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -17,54 +17,143 @@ dayjs.extend(timezone);
 const TIMEZONE = "Asia/Shanghai";
 dayjs.tz.setDefault(TIMEZONE);
 
+// 验证模式
+const activitySchema = z
+  .object({
+    title: z
+      .string()
+      .min(1, "活动标题不能为空")
+      .max(50, "标题不能超过50个字符")
+      .trim(),
+    content: z.string().min(1, "活动描述不能为空").trim(),
+    deadline: z
+      .string()
+      .min(1, "截止时间不能为空")
+      .refine((val) => {
+        const date = dayjs(val).tz(TIMEZONE);
+        const now = dayjs().tz(TIMEZONE);
+        return date.isAfter(now);
+      }, "截止时间必须是未来时间"),
+    winnersCount: z
+      .string()
+      .min(1, "中签人数不能为空")
+      .refine((val) => !isNaN(Number(val)), "中签人数必须是数字")
+      .refine((val) => Number(val) >= 1, "中签人数不能小于1")
+      .refine((val) => Number(val) <= 1000, "中签人数不能超过1000人"),
+    maxRegistrants: z
+      .string()
+      .min(1, "最大报名人数不能为空")
+      .refine((val) => !isNaN(Number(val)), "最大报名人数必须是数字")
+      .refine((val) => {
+        const num = Number(val);
+        return num >= 1;
+      }, "最大报名人数不能小于1")
+      .refine((val) => {
+        const num = Number(val);
+        return num <= 10000;
+      }, "最大报名人数不能超过10000人"),
+    isPublished: z.boolean(),
+  })
+  .superRefine((data, ctx) => {
+    const maxRegistrants = Number(data.maxRegistrants);
+    const winnersCount = Number(data.winnersCount);
+    if (maxRegistrants < winnersCount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "最大报名人数必须大于或等于中签人数",
+        path: ["maxRegistrants"],
+      });
+    }
+  });
+
+type ActivityFormData = z.infer<typeof activitySchema>;
+
+export type ProcessedActivityData = {
+  title: string;
+  content: string;
+  deadline: string;
+  winnersCount: number;
+  maxRegistrants: number;
+  isPublished: boolean;
+};
+
 interface ActivityFormProps {
   id?: string;
-  defaultValues?: Partial<ActivityFormData>;
+  onSubmit: (data: FormData) => Promise<void>;
+  defaultValues?: Partial<ProcessedActivityData>;
+  isSubmitting?: boolean;
   error?: string | null;
 }
 
 export function ActivityForm({
   id,
+  onSubmit,
   defaultValues,
+  isSubmitting = false,
   error = null,
 }: ActivityFormProps) {
   // 设置默认的截止时间为当前时间后24小时，使用本地时区
+  // 固定使用特定时区创建默认时间，避免服务端和客户端差异
   const defaultDeadline = dayjs().tz(TIMEZONE).add(24, "hour");
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+  } = useForm<ActivityFormData>({
+    resolver: zodResolver(activitySchema),
+    defaultValues: {
+      title: defaultValues?.title ?? "",
+      content: defaultValues?.content ?? "",
+      deadline:
+        defaultValues?.deadline ??
+        defaultDeadline.format("YYYY-MM-DDTHH:mm:ss"),
+      winnersCount: defaultValues?.winnersCount?.toString() ?? "",
+      maxRegistrants: defaultValues?.maxRegistrants?.toString() ?? "",
+      isPublished: defaultValues?.isPublished ?? false,
+    },
+  });
+
+  const winnersCount = watch("winnersCount");
+
   // 获取当前时间（固定时区）
-  const now = dayjs().tz(TIMEZONE).format("YYYY-MM-DDTHH:mm");
+  const now = dayjs().tz(TIMEZONE).format("YYYY-MM-DDTHH:mm:ss");
 
-  // 根据是否有id选择创建或更新action
-  const router = useRouter();
-
-  // 处理表单提交
-  const handleSubmit = async (formData: FormData) => {
+  const handleFormSubmit = handleSubmit((data: ActivityFormData) => {
     try {
-      // 处理日期时间
-      const deadline = formData.get("deadline");
-      if (deadline) {
-        // 将本地时间转换为 UTC+8
-        const localDate = dayjs(deadline as string).tz(TIMEZONE);
-        formData.set("deadline", localDate.format());
-      }
+      // 创建FormData对象
+      const formData = new FormData();
 
-      // 调用相应的 action
+      // 如果是编辑模式，添加id
       if (id) {
-        await updateActivity(id, formData);
-      } else {
-        await createActivity(formData);
+        formData.append("id", id);
       }
 
-      // 在客户端手动执行路由跳转
-      router.push("/admin");
-      router.refresh();
+      // 添加表单数据
+      formData.append("title", data.title);
+      formData.append("content", data.content);
+      formData.append(
+        "deadline",
+        dayjs(data.deadline).format("YYYY-MM-DDTHH:mm:ss"),
+      );
+      formData.append("winnersCount", data.winnersCount);
+      formData.append("maxRegistrants", data.maxRegistrants);
+      formData.append("isPublished", data.isPublished ? "on" : "off");
+
+      return onSubmit(formData);
     } catch (error) {
-      console.error("表单提交错误:", error);
+      console.error("Form processing error:", error);
     }
-  };
+  });
 
   return (
-    <form action={handleSubmit} className="space-y-4">
+    <form
+      data-testid="activity-form"
+      onSubmit={handleFormSubmit}
+      className="space-y-4"
+      noValidate // 禁用浏览器原生验证
+    >
       {error && (
         <div className="rounded-md bg-red-50 p-4">
           <p className="text-sm text-red-500" data-testid="form-error">
@@ -79,11 +168,16 @@ export function ActivityForm({
         </label>
         <Input
           id="title"
-          name="title"
           data-testid="activity-title"
-          defaultValue={defaultValues?.title}
+          error={!!errors.title}
+          {...register("title")}
           placeholder="请输入活动标题"
         />
+        {errors.title?.message && (
+          <p className="mt-1 text-sm text-red-500" data-testid="error-title">
+            {errors.title.message}
+          </p>
+        )}
       </div>
 
       <div>
@@ -92,14 +186,19 @@ export function ActivityForm({
         </label>
         <textarea
           id="content"
-          name="content"
           data-testid="activity-content"
-          defaultValue={defaultValues?.content}
+          {...register("content")}
           placeholder="请输入活动内容"
           className={cn(
             "h-32 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-950 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-950 dark:placeholder:text-neutral-400 dark:focus-visible:ring-neutral-300",
+            errors.content && "border-red-500 focus-visible:ring-red-500",
           )}
         />
+        {errors.content?.message && (
+          <p className="mt-1 text-sm text-red-500" data-testid="error-content">
+            {errors.content.message}
+          </p>
+        )}
       </div>
 
       <div>
@@ -108,15 +207,18 @@ export function ActivityForm({
         </label>
         <Input
           id="deadline"
-          name="deadline"
           data-testid="activity-deadline"
           type="datetime-local"
+          step="1" // 启用秒级精度
+          error={!!errors.deadline}
+          {...register("deadline")}
           min={now}
-          defaultValue={(defaultValues?.deadline
-            ? dayjs(defaultValues.deadline).tz(TIMEZONE)
-            : defaultDeadline
-          ).format("YYYY-MM-DDTHH:mm:00")}
         />
+        {errors.deadline?.message && (
+          <p className="mt-1 text-sm text-red-500" data-testid="error-deadline">
+            {errors.deadline.message}
+          </p>
+        )}
         <p className="mt-1 text-sm text-gray-500">
           请选择一个未来的时间，建议留足够的报名时间
         </p>
@@ -131,16 +233,29 @@ export function ActivityForm({
         </label>
         <Input
           id="winnersCount"
-          name="winnersCount"
           data-testid="activity-winners-count"
           type="number"
           min="1"
           max="1000"
-          defaultValue={defaultValues?.winnersCount}
+          error={!!errors.winnersCount}
+          {...register("winnersCount")}
           placeholder="请输入中签人数 (1-1000)"
         />
+        {errors.winnersCount?.message && (
+          <p
+            className="mt-1 text-sm text-red-500"
+            data-testid="error-winners-count"
+          >
+            {errors.winnersCount.message}
+          </p>
+        )}
         <p className="mt-1 text-sm text-gray-500">
           建议设置合理的中签人数，通常不超过预期报名人数的50%
+          {Number(winnersCount) > 500 && (
+            <span className="text-yellow-500">
+              （当前设置的人数较多，请确认是否合理）
+            </span>
+          )}
         </p>
       </div>
 
@@ -153,14 +268,22 @@ export function ActivityForm({
         </label>
         <Input
           id="maxRegistrants"
-          name="maxRegistrants"
           data-testid="activity-max-registrants"
           type="number"
           min="1"
           max="10000"
-          defaultValue={defaultValues?.maxRegistrants}
+          error={!!errors.maxRegistrants}
+          {...register("maxRegistrants")}
           placeholder="请输入最大报名人数 (1-10000)"
         />
+        {errors.maxRegistrants?.message && (
+          <p
+            className="mt-1 text-sm text-red-500"
+            data-testid="error-max-registrants"
+          >
+            {errors.maxRegistrants.message}
+          </p>
+        )}
         <p className="mt-1 text-sm text-gray-500">
           请设置合理的最大报名人数，必须大于等于中签人数
         </p>
@@ -170,8 +293,7 @@ export function ActivityForm({
         <input
           type="checkbox"
           id="isPublished"
-          name="isPublished"
-          defaultChecked={defaultValues?.isPublished}
+          {...register("isPublished")}
           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
         <label htmlFor="isPublished" className="text-sm font-medium">
@@ -179,7 +301,13 @@ export function ActivityForm({
         </label>
       </div>
 
-      <SubmitButton className="btn btn-primary w-full">提交</SubmitButton>
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="btn btn-primary w-full"
+      >
+        {isSubmitting ? "提交中..." : "提交"}
+      </button>
     </form>
   );
 }

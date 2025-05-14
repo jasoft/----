@@ -32,10 +32,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 function ExpiredState({ title }: { title: string }) {
   return (
-    <main className="container mx-auto max-w-2xl px-4 py-8">
+    <div className="container mx-auto max-w-2xl px-4 py-8">
       <h1 className="mb-8 text-3xl font-bold">{title}</h1>
       <div className="rounded-lg bg-red-50 p-4 text-red-800">报名已截止</div>
-    </main>
+    </div>
   );
 }
 
@@ -60,7 +60,7 @@ export default async function RegisterPage(props: Props) {
   }
 
   return (
-    <main className="container mx-auto max-w-2xl px-4 py-8">
+    <div className="container mx-auto max-w-2xl px-4 py-8">
       <h1 className="mb-8 text-3xl font-bold">{activity.title}</h1>
       <div className="mb-8 space-y-4">
         <p className="text-sm text-neutral-500">
@@ -78,6 +78,6 @@ export default async function RegisterPage(props: Props) {
         <h2 className="mb-6 text-xl font-semibold">报名表单</h2>
         <RegistrationForm activityId={activity.id} error={searchParams.error} />
       </div>
-    </main>
+    </div>
   );
 }

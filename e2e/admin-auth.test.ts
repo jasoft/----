@@ -1,31 +1,24 @@
 import { test, expect } from "./fixtures";
+import { clerk } from "@clerk/testing/playwright";
 
 test.describe("管理员认证", () => {
-  test("登录和登出功能测试", async ({ testPage }) => {
-    // 登录后验证管理员界面
-    await testPage.goto("/admin");
-    await expect(
-      testPage.getByRole("link", { name: "退出登录" }),
-    ).toBeVisible();
-    await expect(
-      testPage.getByRole("heading", { name: "活动管理" }),
-    ).toBeVisible();
+  test("登录和登出功能测试", async ({ page, login }) => {
+    // 先登录
+    await login(page);
 
-    // 通过导航链接登出
-    await testPage.click('a:has-text("退出登录")');
-    await testPage.waitForLoadState("networkidle");
-    await expect(
-      testPage.getByRole("link", { name: "退出登录" }),
-    ).not.toBeVisible();
+    // 访问管理员页面
+    await page.goto("/admin");
 
-    // 等待页面重定向到首页
+    // 检查是否在管理页面
+    await expect(page.getByRole("heading", { name: "活动管理" })).toBeVisible();
+
+    await clerk.signOut({ page });
+    // 点击用户菜单按钮
+    // 等待页面导航完成
+    await page.waitForURL("/user");
 
     // 尝试访问管理页面，应该被重定向到登录页
-    await testPage.goto("/admin");
-    await expect(testPage).toHaveURL(/\/admin\/login/);
-
-    // 验证登录表单出现
-    await expect(testPage.locator("#username")).toBeVisible();
-    await expect(testPage.locator("#password")).toBeVisible();
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/\/sign-in/);
   });
 });

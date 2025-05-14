@@ -1,3 +1,8 @@
+"use client";
+
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { createActivity } from "~/app/actions/activity";
 import { ActivityForm } from "~/components/forms/activity-form";
 import { BackButton } from "~/components/ui/back-button";
 
@@ -6,6 +11,21 @@ interface CreateActivityFormProps {
 }
 
 export function CreateActivityForm({ error }: CreateActivityFormProps) {
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  const handleSubmit = async (formData: FormData) => {
+    startTransition(async () => {
+      try {
+        await createActivity(formData);
+        router.push("/admin");
+      } catch (error) {
+        console.error("Failed to create activity:", error);
+        throw error;
+      }
+    });
+  };
+
   return (
     <>
       <div className="mb-8 flex items-center justify-between">
@@ -13,7 +33,11 @@ export function CreateActivityForm({ error }: CreateActivityFormProps) {
         <BackButton />
       </div>
 
-      <ActivityForm error={error} />
+      <ActivityForm
+        onSubmit={handleSubmit}
+        isSubmitting={isPending}
+        error={error}
+      />
     </>
   );
 }

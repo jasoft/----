@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "~/components/ui/input";
 import { SubmitButton } from "~/components/ui/submit-button";
+import { createRegistration } from "~/app/actions/registration";
 
 // 验证模式
 const registrationSchema = z.object({
@@ -42,9 +43,9 @@ export function RegistrationForm({ activityId, error }: RegistrationFormProps) {
   return (
     <form
       action={async (formData: FormData) => {
-        // Server Action会在表单提交时自动调用
-        "use server";
+        // 将活动ID添加到表单数据中
         formData.append("activity", activityId);
+        await createRegistration(activityId, formData);
       }}
       className="space-y-4"
       data-testid="registration-form"

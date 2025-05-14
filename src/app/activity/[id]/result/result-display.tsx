@@ -46,7 +46,7 @@ export function ResultDisplay({
   }, [mounted, isPending, registrationCount, winnerCount]);
 
   return (
-    <main className="container mx-auto max-w-4xl space-y-8 px-4 py-8">
+    <div className="container mx-auto max-w-4xl space-y-8 px-4 py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">{activity.title}</h1>
         <Link href="/" className="btn btn-outline">
@@ -140,6 +140,6 @@ export function ResultDisplay({
           )}
         </div>
       )}
-    </main>
+    </div>
   );
 }

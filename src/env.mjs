@@ -3,39 +3,35 @@ import { z } from "zod";
 
 export const env = createEnv({
   /**
-   * 服务端环境变量的验证规则
+   * 服务器端环境变量的验证
    */
   server: {
-    AUTH_SECRET: z.string().optional(),
-    AUTH_GITHUB_ID: z.string().min(1),
-    AUTH_GITHUB_SECRET: z.string().min(1),
-    NODE_ENV: z.enum(["development", "test", "production"]),
-    POCKETBASE_ADMIN_EMAIL: z.string().email("管理员邮箱格式不正确"),
-    POCKETBASE_ADMIN_PASSWORD: z.string().min(8, "管理员密码至少需要8个字符"),
+    NODE_ENV: z.enum(["development", "test", "production"]).optional(),
+    CLERK_SECRET_KEY: z.string().min(1),
   },
 
   /**
-   * 客户端环境变量的验证规则
+   * 客户端环境变量的验证
    */
   client: {
-    NEXT_PUBLIC_POCKETBASE_URL: z.string().url(),
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().min(1),
+    NEXT_PUBLIC_CLERK_SIGN_UP_URL: z.string().min(1),
+    NEXT_PUBLIC_POCKETBASE_URL: z.string().min(1),
+    NEXT_PUBLIC_SKIP_AUTH_IN_TEST: z.string().optional(),
   },
 
   /**
-   * 不应该解构的环境变量，通常是前缀
+   * 环境变量解析规则
    */
   runtimeEnv: {
-    AUTH_SECRET: process.env.AUTH_SECRET,
-    AUTH_GITHUB_ID: process.env.AUTH_GITHUB_ID,
-    AUTH_GITHUB_SECRET: process.env.AUTH_GITHUB_SECRET,
-    NEXT_PUBLIC_POCKETBASE_URL: process.env.NEXT_PUBLIC_POCKETBASE_URL,
     NODE_ENV: process.env.NODE_ENV,
-    POCKETBASE_ADMIN_EMAIL: process.env.POCKETBASE_ADMIN_EMAIL,
-    POCKETBASE_ADMIN_PASSWORD: process.env.POCKETBASE_ADMIN_PASSWORD,
+    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
+    NEXT_PUBLIC_CLERK_SIGN_UP_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL,
+    NEXT_PUBLIC_POCKETBASE_URL: process.env.NEXT_PUBLIC_POCKETBASE_URL,
+    NEXT_PUBLIC_SKIP_AUTH_IN_TEST: process.env.NEXT_PUBLIC_SKIP_AUTH_IN_TEST,
   },
-
-  /**
-   * 在开发环境中是否跳过验证
-   */
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });

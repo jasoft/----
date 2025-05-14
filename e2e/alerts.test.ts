@@ -1,24 +1,24 @@
 import { test, expect } from "./fixtures";
 
 test.describe("操作反馈提示测试", () => {
-  test("删除活动应显示成功提示", async ({ testPage, createTestActivity }) => {
+  test("删除活动应显示成功提示", async ({ authedPage, createTestActivity }) => {
     const activity = await createTestActivity();
-    await testPage.goto("/admin");
+    await authedPage.goto("/admin");
 
     // 点击删除按钮
-    await testPage.click(`[data-testid="delete-activity-${activity.id}"]`);
+    await authedPage.click(`[data-testid="delete-activity-${activity.id}"]`);
 
     // 等待并确认删除对话框
-    await expect(testPage.locator(".swal2-popup")).toBeVisible();
-    await expect(testPage.locator(".swal2-title")).toHaveText("确认删除");
-    await testPage.click(".swal2-confirm");
+    await expect(authedPage.locator(".swal2-popup")).toBeVisible();
+    await expect(authedPage.locator(".swal2-title")).toHaveText("确认删除");
+    await authedPage.click(".swal2-confirm");
 
     // 等待确认对话框消失和动画完成
-    await testPage.waitForSelector(".swal2-popup", { state: "hidden" });
-    await testPage.waitForTimeout(500);
+    await authedPage.waitForSelector(".swal2-popup", { state: "hidden" });
+    await authedPage.waitForTimeout(500);
 
     // 验证成功提示
-    const toastMessage = testPage.locator('[data-testid="toast-message"]');
+    const toastMessage = authedPage.locator('[data-testid="toast-message"]');
     await expect(toastMessage).toBeVisible({ timeout: 10000 });
     await expect(toastMessage).toContainText(/已删除/i);
 
@@ -29,37 +29,37 @@ test.describe("操作反馈提示测试", () => {
   });
 
   test("批量删除活动应显示成功提示", async ({
-    testPage,
+    authedPage,
     createTestActivity,
   }) => {
     // 创建两个测试活动
     const activity1 = await createTestActivity();
     const activity2 = await createTestActivity();
 
-    await testPage.goto("/admin");
+    await authedPage.goto("/admin");
 
     // 选中两个活动
-    await testPage.click(
+    await authedPage.click(
       `[data-testid="activity-${activity1.id}"] input[type="checkbox"]`,
     );
-    await testPage.click(
+    await authedPage.click(
       `[data-testid="activity-${activity2.id}"] input[type="checkbox"]`,
     );
 
     // 点击批量删除
-    await testPage.click("button:has-text('批量删除')");
+    await authedPage.click("button:has-text('批量删除')");
 
     // 等待并确认删除对话框
-    await expect(testPage.locator(".swal2-popup")).toBeVisible();
-    await expect(testPage.locator(".swal2-title")).toHaveText("确认批量删除");
-    await testPage.click(".swal2-confirm");
+    await expect(authedPage.locator(".swal2-popup")).toBeVisible();
+    await expect(authedPage.locator(".swal2-title")).toHaveText("确认批量删除");
+    await authedPage.click(".swal2-confirm");
 
     // 等待确认对话框消失和动画完成
-    await testPage.waitForSelector(".swal2-popup", { state: "hidden" });
-    await testPage.waitForTimeout(500);
+    await authedPage.waitForSelector(".swal2-popup", { state: "hidden" });
+    await authedPage.waitForTimeout(500);
 
     // 验证成功提示
-    const toastMessage = testPage.locator('[data-testid="toast-message"]');
+    const toastMessage = authedPage.locator('[data-testid="toast-message"]');
     await expect(toastMessage).toBeVisible({ timeout: 10000 });
     await expect(toastMessage).toContainText(/选中的活动已成功删除/i);
 
@@ -70,19 +70,19 @@ test.describe("操作反馈提示测试", () => {
   });
 
   test("切换活动状态应显示成功提示", async ({
-    testPage,
+    authedPage,
     createTestActivity,
   }) => {
     const activity = await createTestActivity();
-    await testPage.goto("/admin");
+    await authedPage.goto("/admin");
 
     // 点击结束按钮
-    await testPage.click(
+    await authedPage.click(
       `[data-testid="activity-${activity.id}"] button:has-text("结束")`,
     );
 
     // 验证成功提示
-    const toastMessage = testPage.locator('[data-testid="toast-message"]');
+    const toastMessage = authedPage.locator('[data-testid="toast-message"]');
     await expect(toastMessage).toBeVisible({ timeout: 10000 });
     await expect(toastMessage).toContainText(/活动已结束/i);
 
@@ -92,7 +92,7 @@ test.describe("操作反馈提示测试", () => {
     });
 
     // 点击开启按钮
-    await testPage.click(
+    await authedPage.click(
       `[data-testid="activity-${activity.id}"] button:has-text("开启")`,
     );
 
@@ -106,15 +106,15 @@ test.describe("操作反馈提示测试", () => {
     });
   });
 
-  test("删除失败应显示错误提示", async ({ testPage, createTestActivity }) => {
+  test("删除失败应显示错误提示", async ({ authedPage, createTestActivity }) => {
     const activity = await createTestActivity();
-    await testPage.goto("/admin");
+    await authedPage.goto("/admin");
 
     let deleteAttempted = false;
     const errorMessage = `删除活动"${activity.title}"失败`;
 
     // 设置路由拦截
-    await testPage.route(
+    await authedPage.route(
       "**/api/collections/activities/records/**",
       async (route) => {
         if (route.request().method() === "DELETE") {
@@ -133,9 +133,9 @@ test.describe("操作反馈提示测试", () => {
       },
     );
 
-    const toast = testPage.locator('[data-testid="toast-message"]');
-    const confirmDialog = testPage.locator(".swal2-popup");
-    const activityItem = testPage.locator(
+    const toast = authedPage.locator('[data-testid="toast-message"]');
+    const confirmDialog = authedPage.locator(".swal2-popup");
+    const activityItem = authedPage.locator(
       `[data-testid="activity-${activity.id}"]`,
     );
 
@@ -147,14 +147,14 @@ test.describe("操作反馈提示测试", () => {
     );
 
     // 确认删除
-    await testPage.click(".swal2-confirm");
+    await authedPage.click(".swal2-confirm");
 
     // 验证删除请求被尝试
     expect(deleteAttempted).toBe(true);
 
     // 等待确认对话框消失和所有动画完成
     await confirmDialog.waitFor({ state: "hidden" });
-    await testPage.waitForTimeout(1000);
+    await authedPage.waitForTimeout(1000);
 
     // 验证错误提示
     await expect(toast).toBeVisible({ timeout: 10000 });

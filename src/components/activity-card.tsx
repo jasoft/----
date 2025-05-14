@@ -10,6 +10,7 @@ interface ActivityCardProps {
 export function ActivityCard({ activity }: ActivityCardProps) {
   const expired = isExpired(activity.deadline);
   const registrationsCount = activity.expand?.registrations?.length ?? 0;
+  const isFull = registrationsCount >= (activity.maxRegistrants ?? Infinity);
 
   return (
     <div
@@ -36,7 +37,10 @@ export function ActivityCard({ activity }: ActivityCardProps) {
           <div className="flex items-center gap-4 text-sm text-neutral-500">
             <span className="flex items-center gap-1">
               <span>👥</span>
-              <span>已报名: {registrationsCount}人</span>
+              <span>
+                已报名: {registrationsCount}
+                {activity.maxRegistrants ? `/${activity.maxRegistrants}` : ""}人
+              </span>
             </span>
             <span className="flex items-center gap-1">
               <span>🎯</span>
@@ -53,9 +57,11 @@ export function ActivityCard({ activity }: ActivityCardProps) {
             {!expired && (
               <Link
                 href={`/activity/${activity.id}/register`}
-                className="btn btn-sm btn-primary"
+                className={`btn btn-sm ${
+                  isFull ? "btn-disabled" : "btn-primary"
+                }`}
               >
-                立即报名
+                {isFull ? "报名已满" : "立即报名"}
               </Link>
             )}
           </div>

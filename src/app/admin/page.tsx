@@ -102,7 +102,7 @@ export default function AdminPage() {
   const processedActivities = processActivities(activities);
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-3xl font-bold">活动管理</h1>
@@ -206,6 +206,6 @@ export default function AdminPage() {
           onDeleted={loadActivities}
         />
       )}
-    </main>
+    </div>
   );
 }
