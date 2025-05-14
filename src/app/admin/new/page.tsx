@@ -1,10 +1,20 @@
-import { ActivityContainer } from "../activity-container";
+import type { Metadata } from "next";
+import { CreateActivityForm } from "./create-form";
 
-export default function NewActivityPage() {
+interface PageProps {
+  searchParams: {
+    error?: string;
+  };
+}
+
+export const metadata: Metadata = {
+  title: "创建活动",
+};
+
+export default function CreateActivityPage({ searchParams }: PageProps) {
   return (
-    <main className="container mx-auto min-h-screen px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold">新建活动</h1>
-      <ActivityContainer mode="create" />
-    </main>
+    <div className="container mx-auto max-w-4xl py-8">
+      <CreateActivityForm error={searchParams.error} />
+    </div>
   );
 }

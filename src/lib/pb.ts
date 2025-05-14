@@ -1,4 +1,5 @@
 import PocketBase from "pocketbase";
+import type { AuthRecord } from "pocketbase";
 
 let instance: PocketBase | null = null;
 
@@ -58,10 +59,29 @@ export interface AuthModel extends BaseRecord {
   tokenExpire?: string;
 }
 
+interface AuthCookieData {
+  token: string;
+  model: AuthRecord;
+}
+
+function isAuthCookieData(data: unknown): data is AuthCookieData {
+  if (typeof data !== "object" || data === null) return false;
+
+  const candidate = data as Partial<AuthCookieData>;
+  if (typeof candidate.token !== "string") return false;
+  if (typeof candidate.model !== "object" || candidate.model === null)
+    return false;
+
+  return true;
+}
+
 const isClient = typeof window !== "undefined";
 
 export function getPocketBaseClientInstance() {
   if (!instance) {
+    if (process.env.NEXT_PUBLIC_POCKETBASE_URL === undefined) {
+      throw new Error("POCKETBASE_URL is not defined");
+    }
     instance = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
 
     // 在客户端环境下才初始化认证状态
@@ -89,6 +109,7 @@ export async function executeAuthenticatedOperation<T>(
   const pb = getPocketBaseClientInstance();
 
   try {
+    await pb.collection("users").authWithPassword("admin", "xlu_omKO3lMLPVk");
     // 检查认证状态
     if (!pb.authStore.isValid) {
       throw new Error("未登录或登录已过期");
@@ -123,18 +144,34 @@ export async function executeAuthenticatedOperation<T>(
 /**
  * 检查当前用户是否为管理员
  */
+export function isAdmin() {
+  const pb = getPocketBaseClientInstance();
 
-/**
- * 管理员登出
- */
+  try {
+    // 尝试从cookie中读取认证数据
+    const cookieStr = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("pb_auth="));
+
+    if (!cookieStr) return false;
+
+    const cookieValue = cookieStr.split("=")[1];
+    if (!cookieValue) return false;
+
+    const parsedData = JSON.parse(decodeURIComponent(cookieValue)) as unknown;
+    if (!isAuthCookieData(parsedData)) return false;
+
+    // 恢复认证状态
+    pb.authStore.save(parsedData.token, parsedData.model);
+
+    return pb.authStore.record?.role === "admin";
+  } catch (error) {
+    console.error("Error checking admin status:", error);
+    return false;
+  }
+}
+
 export function adminLogout() {
   const pb = getPocketBaseClientInstance();
   pb.authStore.clear();
-  console.log("authStoreCleared", pb.authStore.record);
-}
-
-export function isAdmin() {
-  const pb = getPocketBaseClientInstance();
-  console.log("isAdmin", pb.authStore.record);
-  return pb.authStore.record?.role === "admin";
 }

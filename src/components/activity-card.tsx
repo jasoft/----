@@ -1,7 +1,7 @@
-"use client";
-
+import Link from "next/link";
 import type { Activity } from "~/lib/pb";
-import { formatDate, isExpired, getTimeLeft } from "~/lib/utils";
+import { formatDate, isExpired } from "~/lib/utils";
+import { ActivityCountdown } from "./activity-countdown";
 
 interface ActivityCardProps {
   activity: Activity;
@@ -22,13 +22,12 @@ export function ActivityCard({ activity }: ActivityCardProps) {
           <p className="text-sm text-neutral-500">
             截止时间: {formatDate(activity.deadline)}
           </p>
-          <p
+          <ActivityCountdown
+            deadline={activity.deadline}
             className={`text-sm ${
               expired ? "text-neutral-500" : "text-primary"
             }`}
-          >
-            {getTimeLeft(activity.deadline)}
-          </p>
+          />
         </div>
         <p className="line-clamp-3 text-sm text-neutral-600 dark:text-neutral-400">
           {activity.content}
@@ -45,19 +44,19 @@ export function ActivityCard({ activity }: ActivityCardProps) {
             </span>
           </div>
           <div className="ml-auto space-x-2">
-            <a
+            <Link
               href={`/activity/${activity.id}/result`}
               className="btn btn-sm btn-outline"
             >
               {expired ? "查看结果" : "查看报名"}
-            </a>
+            </Link>
             {!expired && (
-              <a
+              <Link
                 href={`/activity/${activity.id}/register`}
                 className="btn btn-sm btn-primary"
               >
                 立即报名
-              </a>
+              </Link>
             )}
           </div>
         </div>

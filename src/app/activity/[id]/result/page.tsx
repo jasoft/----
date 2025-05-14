@@ -1,42 +1,7 @@
 import { notFound } from "next/navigation";
 import { type Activity } from "~/lib/pb";
 import { ResultDisplay } from "./result-display";
-
-function validateActivityData(data: unknown): Activity {
-  if (!data || typeof data !== "object") {
-    throw new Error("Invalid activity data: data is not an object");
-  }
-
-  const requiredFields = [
-    "id",
-    "created",
-    "updated",
-    "title",
-    "content",
-    "deadline",
-    "winnersCount",
-  ] as const;
-  for (const field of requiredFields) {
-    if (!(field in data)) {
-      throw new Error(
-        `Invalid activity data: missing required field '${field}'`,
-      );
-    }
-  }
-
-  const activity = data as Activity;
-
-  if (
-    typeof activity.title !== "string" ||
-    typeof activity.content !== "string" ||
-    typeof activity.deadline !== "string" ||
-    typeof activity.winnersCount !== "number"
-  ) {
-    throw new Error("Invalid activity data: field type mismatch");
-  }
-
-  return activity;
-}
+import { activityService } from "~/services/activity";
 
 async function logError(context: string, error: unknown) {
   console.error(`=== Error in ${context} ===`);
@@ -52,32 +17,6 @@ async function logError(context: string, error: unknown) {
   console.error("=== End of error ===\n");
 }
 
-async function getActivity(activityId: string): Promise<Activity | null> {
-  try {
-    const url = `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/collections/activities/records/${activityId}?expand=registrations`;
-    console.log("Fetching activity:", url);
-
-    const res = await fetch(url, {
-      cache: "no-store",
-      next: { revalidate: 0 },
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`HTTP Error ${res.status}: ${errorText}`);
-    }
-
-    const rawData: unknown = await res.json();
-    console.log("Raw activity data:", JSON.stringify(rawData, null, 2));
-
-    const activity = validateActivityData(rawData);
-    return activity;
-  } catch (error) {
-    await logError("getActivity", error);
-    return null;
-  }
-}
-
 interface Props {
   params: Promise<{
     id: string;
@@ -90,7 +29,7 @@ export default async function ResultPage({ params }: Props) {
     console.log("Loading result page for activity:", id);
 
     // 获取活动信息
-    const activity = await getActivity(id);
+    const activity = await activityService.getActivity(id);
     if (!activity) {
       console.error("Activity not found:", id);
       notFound();

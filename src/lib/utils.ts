@@ -27,12 +27,12 @@ export function formatDate(date: Date | string) {
 }
 
 // 获取剩余时间
-export function getTimeLeft(deadline: Date | string) {
-  const now = dayjs().tz();
-  const end = dayjs(deadline).tz();
-  if (now.isAfter(end)) return "已结束";
+export function getTimeLeft(deadline: Date | string, now: Date = new Date()) {
+  const endTime = dayjs(deadline).tz();
+  const currentTime = dayjs(now).tz();
+  if (currentTime.isAfter(endTime)) return "已结束";
 
-  const diff = end.diff(now);
+  const diff = endTime.diff(currentTime);
   const duration = dayjs.duration(diff);
 
   const days = Math.floor(duration.asDays());
@@ -51,10 +51,10 @@ export function getTimeLeft(deadline: Date | string) {
 }
 
 // 检查是否已过期
-export function isExpired(deadline: Date | string) {
-  const now = dayjs().tz();
-  const end = dayjs(deadline).tz();
-  return end.isBefore(now);
+export function isExpired(deadline: Date | string, now: Date = new Date()) {
+  const endTime = dayjs(deadline).tz();
+  const currentTime = dayjs(now).tz();
+  return endTime.isBefore(currentTime);
 }
 
 // 随机抽取指定数量的元素

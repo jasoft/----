@@ -66,19 +66,21 @@ export class ActivityService {
    * 获取活动详情
    */
   async getActivity(id: string) {
-    try {
-      const record = await this.pb
-        .collection(Collections.ACTIVITIES)
-        .getOne<Activity>(id, {
-          expand: "registrations",
-        });
-      return record;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`获取活动失败: ${error.message}`);
+    return executeAuthenticatedOperation(async () => {
+      try {
+        const record = await this.pb
+          .collection(Collections.ACTIVITIES)
+          .getOne<Activity>(id, {
+            expand: "registrations",
+          });
+        return record;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(`获取活动失败: ${error.message}`);
+        }
+        throw error;
       }
-      throw error;
-    }
+    });
   }
 
   /**

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { type Activity } from "~/lib/pb";
 import { ManageActivityList } from "~/components/manage-activity-list";
-import { activityService } from "~/services/activity";
+import { fetchAdminActivitiesOnServer } from "./actions";
 
 type SortField = "created" | "deadline" | "registrations" | "title";
 type SortOrder = "asc" | "desc";
@@ -14,7 +14,6 @@ export default function AdminPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   // 排序和筛选状态
   const [sortField, setSortField] = useState<SortField>("created");
@@ -22,82 +21,32 @@ export default function AdminPage() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const loadActivities = useCallback(async () => {
+  const loadActivities = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const items = await activityService.getAdminActivityList();
-      setActivities(items);
-      setRetryCount(0);
+      // 调用 Server Action
+      const result = await fetchAdminActivitiesOnServer();
+
+      if (result.success) {
+        setActivities(result.data ?? []); // 使用 Server Action 返回的数据
+      } else {
+        setError(result.error ?? "未知错误"); // 使用 Server Action 返回的错误
+      }
     } catch (err) {
-      let errorMessage = "加载活动列表失败";
-
-      if (err instanceof Error) {
-        if (err.message.includes("认证已过期")) {
-          errorMessage = "管理员登录已过期，请重新登录";
-        } else if (err.message.includes("network")) {
-          errorMessage = "网络连接失败，请检查网络后重试";
-        } else if (err.message.includes("timeout")) {
-          errorMessage = "请求超时，请稍后重试";
-        } else {
-          errorMessage = `加载失败: ${err.message}`;
-        }
-      }
-
-      setError(errorMessage);
-
-      if (window.innerWidth < 768) {
-        setRetryCount((prev) => prev + 1);
-
-        if (retryCount >= 2) {
-          alert("多次加载失败，请稍后再试或联系管理员");
-        } else {
-          alert(errorMessage + "\n\n下拉刷新页面可重试");
-        }
-      }
+      // 这个catch块主要用于捕获调用Server Action本身可能发生的意外错误
+      // （例如，网络问题导致无法调用Server Action，或者Server Action内部有未捕获的异常）
+      console.error("调用Server Action失败:", err);
+      setError("与服务器通信时发生意外错误，请重试。");
     } finally {
       setIsLoading(false);
     }
-  }, [retryCount]);
+  };
 
   // 初始加载
   useEffect(() => {
     void loadActivities();
-  }, [loadActivities]);
-
-  // 添加下拉刷新支持
-  useEffect(() => {
-    let touchStartY = 0;
-    let touchEndY = 0;
-    const minSwipeDistance = 50;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      if (touch?.clientY !== undefined) {
-        touchStartY = touch.clientY;
-      }
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      const touch = e.changedTouches[0];
-      if (touch?.clientY !== undefined) {
-        touchEndY = touch.clientY;
-        const swipeDistance = touchEndY - touchStartY;
-
-        if (window.scrollY === 0 && swipeDistance > minSwipeDistance) {
-          void loadActivities();
-        }
-      }
-    };
-
-    document.addEventListener("touchstart", handleTouchStart);
-    document.addEventListener("touchend", handleTouchEnd);
-
-    return () => {
-      document.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, [loadActivities]);
+  }, []);
 
   // 数据处理函数
   const processActivities = (items: Activity[]) => {
@@ -234,27 +183,14 @@ export default function AdminPage() {
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <div className="mb-3 text-center">
             <p className="text-red-600">{error}</p>
-            <p className="mt-2 text-sm text-red-500">
-              {retryCount >= 2
-                ? "请尝试重新登录管理员账户"
-                : "点击下方按钮重试，或下拉页面刷新"}
-            </p>
           </div>
-          <div className="flex justify-center space-x-4">
+          <div className="flex justify-center">
             <button
               onClick={() => void loadActivities()}
               className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
             >
               重试
             </button>
-            {retryCount >= 2 && (
-              <Link
-                href="/"
-                className="rounded bg-neutral-600 px-4 py-2 text-white hover:bg-neutral-700"
-              >
-                返回首页
-              </Link>
-            )}
           </div>
         </div>
       ) : activities.length === 0 ? (
