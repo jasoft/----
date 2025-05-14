@@ -6,15 +6,16 @@ import { RegistrationForm } from "~/components/forms/registration-form";
 import { formatDate, isExpired } from "~/lib/utils";
 
 interface Props {
-  params: {
+  params: Promise<{
     id: string;
-  };
-  searchParams: {
+  }>;
+  searchParams: Promise<{
     error?: string;
-  };
+  }>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const activity = await activityService.getActivity(params.id);
 
   if (!activity) {
@@ -48,7 +49,9 @@ async function getActivity(id: string): Promise<Activity> {
   return activity;
 }
 
-export default async function RegisterPage({ params, searchParams }: Props) {
+export default async function RegisterPage(props: Props) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const activity = await getActivity(params.id);
 
   // 检查是否已截止

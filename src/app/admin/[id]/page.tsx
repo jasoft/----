@@ -13,6 +13,7 @@ interface PageProps {
 
 export default async function EditActivityPage({ params }: PageProps) {
   try {
+    // eslint-disable-next-line @typescript-eslint/await-thenable
     const { id } = await params;
     const activity = await activityService.getActivity(id);
 

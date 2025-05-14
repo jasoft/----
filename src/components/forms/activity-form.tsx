@@ -1,12 +1,14 @@
+"use client";
+
 import { cn } from "~/lib/utils";
 import { Input } from "~/components/ui/input";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { createActivity, updateActivity } from "~/app/actions/activity";
+import { useRouter } from "next/navigation";
 import type { ActivityFormData } from "~/app/actions/activity";
 import { SubmitButton } from "~/components/ui/submit-button";
-
 // 配置dayjs使用时区
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -33,12 +35,36 @@ export function ActivityForm({
   const now = dayjs().tz(TIMEZONE).format("YYYY-MM-DDTHH:mm");
 
   // 根据是否有id选择创建或更新action
-  const action = id
-    ? (formData: FormData) => updateActivity(id, formData)
-    : createActivity;
+  const router = useRouter();
+
+  // 处理表单提交
+  const handleSubmit = async (formData: FormData) => {
+    try {
+      // 处理日期时间
+      const deadline = formData.get("deadline");
+      if (deadline) {
+        // 将本地时间转换为 UTC+8
+        const localDate = dayjs(deadline as string).tz(TIMEZONE);
+        formData.set("deadline", localDate.format());
+      }
+
+      // 调用相应的 action
+      if (id) {
+        await updateActivity(id, formData);
+      } else {
+        await createActivity(formData);
+      }
+
+      // 在客户端手动执行路由跳转
+      router.push("/admin");
+      router.refresh();
+    } catch (error) {
+      console.error("表单提交错误:", error);
+    }
+  };
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={handleSubmit} className="space-y-4">
       {error && (
         <div className="rounded-md bg-red-50 p-4">
           <p className="text-sm text-red-500" data-testid="form-error">
@@ -86,10 +112,10 @@ export function ActivityForm({
           data-testid="activity-deadline"
           type="datetime-local"
           min={now}
-          defaultValue={
-            defaultValues?.deadline ??
-            defaultDeadline.format("YYYY-MM-DDTHH:mm:00")
-          }
+          defaultValue={(defaultValues?.deadline
+            ? dayjs(defaultValues.deadline).tz(TIMEZONE)
+            : defaultDeadline
+          ).format("YYYY-MM-DDTHH:mm:00")}
         />
         <p className="mt-1 text-sm text-gray-500">
           请选择一个未来的时间，建议留足够的报名时间

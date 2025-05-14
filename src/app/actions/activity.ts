@@ -5,7 +5,6 @@ import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { activityService } from "~/services/activity";
 
 // 配置dayjs使用时区
@@ -85,9 +84,6 @@ export async function createActivity(formData: FormData) {
 
     // 重新验证活动列表页面
     revalidatePath("/admin");
-
-    // 重定向到管理页面
-    redirect("/admin");
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new Error(error.errors[0]?.message ?? "表单数据验证失败");
@@ -117,9 +113,6 @@ export async function updateActivity(id: string, formData: FormData) {
     // 重新验证活动列表和详情页面
     revalidatePath("/admin");
     revalidatePath(`/admin/${id}`);
-
-    // 重定向到管理页面
-    redirect("/admin");
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new Error(error.errors[0]?.message ?? "表单数据验证失败");
@@ -138,7 +131,6 @@ export async function deleteActivity(formData: FormData) {
     await activityService.deleteActivity(id);
 
     revalidatePath("/admin");
-    redirect("/admin");
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : "删除活动失败");
   }
