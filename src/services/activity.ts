@@ -115,7 +115,7 @@ export class ActivityService {
           .getList<Activity>(1, 100, {
             sort: "-created",
             expand: "registrations",
-            $autoCancel: false,
+            requestKey: null,
           });
         return records.items;
       } catch (error) {

@@ -6,4 +6,5 @@ setup.describe.configure({ mode: "serial" });
 
 setup("global setup", async ({}) => {
   await clerkSetup();
+  // Set timeout to 10 seconds
 });

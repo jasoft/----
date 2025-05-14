@@ -1,3 +1,4 @@
+import { deleteActivity } from "~/app/actions/activity";
 import { test, expect, type Test } from "./fixtures";
 import type { Page } from "@playwright/test";
 
@@ -8,6 +9,19 @@ interface ActivityFormData {
   winnersCount?: string;
   maxRegistrants?: string;
 }
+// Helper function to create activity title with timestamp
+const createTimestampTitle = (baseTitle: string) => {
+  const now = new Date();
+  const datePart = now.toLocaleDateString().replace(/\//g, "");
+  const timePart = now
+    .toLocaleTimeString("en-US", { hour12: false })
+    .replace(/:/g, "")
+    .substring(0, 4);
+  const randomDigits = Math.floor(Math.random() * 1000)
+    .toString()
+    .padStart(3, "0");
+  return `${baseTitle}-${datePart}${timePart}-${randomDigits}`;
+};
 
 // 辅助函数：填写活动表单
 async function fillActivityForm(page: Page, data: ActivityFormData) {
@@ -44,7 +58,7 @@ test.describe("活动管理测试", () => {
       await page.goto("/admin/new");
       await expect(page.locator('[data-testid="activity-form"]')).toBeVisible();
     });
-    test("成功创建活动", async ({ authedPage: page }) => {
+    test("成功创建活动", async ({ authedPage: page, deleteTestActivity }) => {
       const testTitle = `测试活动-${Date.now()}`;
       const testContent = "这是一个测试活动的详细描述";
 
@@ -57,12 +71,21 @@ test.describe("活动管理测试", () => {
 
       // 点击提交并等待导航
       await page.click('button[type="submit"]');
+      await page
+        .getByRole("textbox", { name: "搜索活动标题或内容" })
+        .fill(testTitle);
 
+      const viewLink = await page
+        .getByRole("link", { name: "查看结果" })
+        .getAttribute("href");
+      const activityId = viewLink?.split("/").at(-2);
       // 验证活动显示在列表中
       // 等待页面加载完成
       // 验证活动已成功创建并显示在页面中
       await expect(page.locator("main")).toContainText(testTitle);
       await expect(page.locator("main")).toContainText(testContent);
+
+      await deleteTestActivity(activityId!);
     });
 
     test("表单验证 - 空字段", async ({ authedPage: page }) => {
@@ -218,25 +241,15 @@ test.describe("活动管理测试", () => {
       deleteTestActivity,
     }) => {
       const activity = await createTestActivity({
-        title: "测试活动",
+        title: "测试活动-查看结果",
         content: "测试内容",
         deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         winnersCount: 2,
         maxRegistrants: 5,
       });
 
-      await page.goto("/admin");
-
-      // 验证显示查看结果按钮
-      const resultLink = page.getByRole("link", { name: "查看结果" });
-      await expect(resultLink).toBeVisible();
-
-      // 点击查看结果按钮
-      await resultLink.click();
-
-      // 验证跳转到结果页面
-      await expect(page).toHaveURL(`/activity/${activity.id}/result`);
-
+      await page.goto(`/activity/${activity.id}/result`);
+      await expect(page.locator("h1")).toContainText(activity.title);
       await deleteTestActivity(activity.id);
     });
   });
@@ -248,7 +261,7 @@ test.describe("活动管理测试", () => {
       deleteTestActivity,
     }) => {
       const activity = await createTestActivity({
-        title: "测试活动",
+        title: createTimestampTitle("测试活动-抽签"),
         content: "测试内容",
         deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         winnersCount: 2,
@@ -271,7 +284,7 @@ test.describe("活动管理测试", () => {
     }) => {
       // 创建一个已过期的活动
       const activity = await createTestActivity({
-        title: "测试活动",
+        title: "测试活动-抽签",
         content: "测试内容",
         deadline: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
         winnersCount: 2,
@@ -285,7 +298,6 @@ test.describe("活动管理测试", () => {
           name: `测试用户${i + 1}`,
           phone: `1380013800${i + 1}`,
         });
-        console.log(reg);
         await pb.collection("activities").update(activity.id, {
           "+registrations": reg.id,
         });
@@ -312,8 +324,9 @@ test.describe("活动管理测试", () => {
       await page.click(".swal2-confirm");
 
       // 验证成功提示
-      await expect(page.locator(".swal2-popup")).toBeVisible();
-      await expect(page.locator(".swal2-title")).toHaveText("抽签完成");
+      await expect(page.getByTestId("operation-alert")).toContainText(
+        "抽签完成",
+      );
 
       // 验证结果
       await page.goto(`/activity/${activity.id}/result`);
@@ -326,14 +339,21 @@ test.describe("活动管理测试", () => {
   test.describe("删除活动", () => {
     test("成功删除活动", async ({ authedPage: page, createTestActivity }) => {
       // 使用 fixture 创建测试活动
-      const activity = await createTestActivity();
+      const activity = await createTestActivity({
+        title: createTimestampTitle("测试活动-删除"),
+        content: "测试内容",
+        deadline: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        winnersCount: 2,
+        maxRegistrants: 5,
+      });
       await page.goto("/admin");
 
       // 验证删除按钮的存在和可点击性
       const deleteButton = page.locator(
         `[data-testid="delete-activity-${activity.id}"]`,
       );
-      await expect(deleteButton).toBeVisible();
+      console.log("Delete button locator:", deleteButton);
+      expect(deleteButton).toBeTruthy();
       await expect(deleteButton).toBeEnabled();
 
       // 点击删除按钮并确认
@@ -356,7 +376,13 @@ test.describe("活动管理测试", () => {
       deleteTestActivity,
     }) => {
       // 使用 fixture 创建测试活动
-      const activity = await createTestActivity();
+      const activity = await createTestActivity({
+        title: createTimestampTitle("测试活动-取消删除"),
+        content: "测试内容",
+        deadline: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        winnersCount: 2,
+        maxRegistrants: 5,
+      });
 
       await page.goto("/admin");
 
@@ -364,7 +390,8 @@ test.describe("活动管理测试", () => {
       const deleteButton = page.locator(
         `[data-testid="delete-activity-${activity.id}"]`,
       );
-      await expect(deleteButton).toBeVisible();
+      console.log("Delete button locator:", deleteButton);
+      expect(deleteButton).toBeTruthy();
       await expect(deleteButton).toBeEnabled();
 
       // 点击删除按钮

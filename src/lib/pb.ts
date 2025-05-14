@@ -83,11 +83,10 @@ export function getPocketBaseClientInstance() {
       throw new Error("POCKETBASE_URL is not defined");
     }
     instance = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
-
+    instance.autoCancellation(false); // 禁用自动取消请求
     // 在客户端环境下才初始化认证状态
     if (isClient) {
       // 设置持久化认证
-      instance.autoCancellation(false);
 
       // 监听认证状态变化并持久化
       instance.authStore.onChange(() => {

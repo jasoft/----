@@ -20,15 +20,21 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <ClerkProvider localization={zhCN}>
-      <html lang="zh-CN">
-        <body className={`font-sans ${inter.variable}`}>
-          <Nav />
-          <GlobalToast />
-          <main className="container mx-auto p-4">{children}</main>
-        </body>
-      </html>
-    </ClerkProvider>
+  const skipAuth = process.env.NEXT_PUBLIC_SKIP_AUTH_IN_TEST === "true";
+
+  const content = (
+    <html lang="zh-CN">
+      <body className={`font-sans ${inter.variable}`}>
+        <Nav />
+        <GlobalToast />
+        <main className="container mx-auto p-4">{children}</main>
+      </body>
+    </html>
+  );
+
+  return skipAuth ? (
+    content
+  ) : (
+    <ClerkProvider localization={zhCN}>{content}</ClerkProvider>
   );
 }
