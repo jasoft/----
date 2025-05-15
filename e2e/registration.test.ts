@@ -1,52 +1,11 @@
-import { test, expect, createTimestampTitle } from "./fixtures";
+import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
 import { fakerZH_CN as faker } from "@faker-js/faker";
+import { generateRandomPhoneNumber } from "./utils";
 
 interface RegistrationFormData {
   name: string;
   phone: string;
-}
-
-// 生成随机手机号码
-function generateRandomPhoneNumber(): string {
-  // 手机号前三位
-  const prefixes = [
-    "130",
-    "131",
-    "132",
-    "133",
-    "134",
-    "135",
-    "136",
-    "137",
-    "138",
-    "139",
-    "150",
-    "151",
-    "152",
-    "155",
-    "156",
-    "157",
-    "158",
-    "159",
-    "170",
-    "176",
-    "177",
-    "178",
-    "180",
-    "181",
-    "182",
-    "183",
-    "184",
-    "185",
-    "186",
-    "187",
-    "188",
-    "189",
-  ];
-  const prefix = faker.helpers.arrayElement(prefixes);
-  const suffix = faker.string.numeric(8);
-  return `${prefix}${suffix}`;
 }
 
 // 生成随机中文姓名

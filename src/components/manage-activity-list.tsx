@@ -157,7 +157,7 @@ export function ManageActivityList({
                     查看结果
                   </a>
                   <a
-                    href={`/admin/${activity.id}`}
+                    href={`/admin/${activity.id}/edit`}
                     className="btn btn-sm btn-secondary w-full"
                     data-testid={`edit-activity-${activity.id}`}
                   >

@@ -1,4 +1,5 @@
-import { test, expect, createTimestampTitle } from "./fixtures";
+import { test, expect } from "./fixtures";
+import { createTimestampTitle } from "./utils";
 
 test.describe("操作反馈提示测试", () => {
   test("删除活动应显示成功提示", async ({
@@ -9,7 +10,7 @@ test.describe("操作反馈提示测试", () => {
     const activity = await createTestActivity({
       title: createTimestampTitle("删除提示测试"),
     });
-    await authedPage.goto("/admin/activities");
+    await authedPage.goto("/admin");
 
     // 点击删除按钮
     await authedPage.click(`[data-testid="delete-activity-${activity.id}"]`);
@@ -32,7 +33,7 @@ test.describe("操作反馈提示测试", () => {
     await expect(toastMessage).not.toBeVisible({
       timeout: 6000,
     });
-    await deleteTestActivity(activity.id);
+    await expect(deleteTestActivity(activity.id)).rejects.toThrow();
   });
 
   test("删除失败应显示错误提示", async ({

@@ -107,8 +107,20 @@ export function ResultDisplay({
         <Card className="rounded-lg bg-white p-6 shadow-md">
           <div className="mb-6 flex items-center gap-3">
             <h1 className="text-2xl font-bold md:text-3xl">{activity.title}</h1>
-            <span className="shrink-0 rounded-full bg-green-500 px-2 py-0.5 text-sm font-medium text-white">
-              报名中
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-sm font-medium text-white ${
+                winners.length > 0
+                  ? "bg-gray-500"
+                  : dayjs().isAfter(dayjs(activity.deadline))
+                    ? "bg-yellow-500"
+                    : "bg-green-500"
+              }`}
+            >
+              {winners.length > 0
+                ? "抽签完成"
+                : dayjs().isAfter(dayjs(activity.deadline))
+                  ? "报名结束"
+                  : "报名中"}
             </span>
           </div>
 
@@ -120,10 +132,21 @@ export function ResultDisplay({
             <div className="flex items-center gap-2 text-red-600">
               <ClockIcon className="h-5 w-5" />
               <span className="font-semibold">
-                距离结束还有：
-                <span className="ml-1" suppressHydrationWarning>
-                  {timeLeft}
-                </span>
+                {dayjs().isAfter(dayjs(activity.deadline)) ? (
+                  <>
+                    报名状态：
+                    <span className="ml-1" suppressHydrationWarning>
+                      已截止
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    距离结束还有：
+                    <span className="ml-1" suppressHydrationWarning>
+                      {timeLeft}
+                    </span>
+                  </>
+                )}
               </span>
             </div>
           </div>
@@ -166,7 +189,9 @@ export function ResultDisplay({
         {/* 报名者列表区 */}
         {registrationCount > 0 && (
           <Card className="rounded-lg bg-white p-6 shadow-md">
-            <h2 className="mb-4 text-xl font-bold">已报名</h2>
+            <h2 className="mb-4 text-xl font-bold">
+              {winners.length > 0 ? "中签结果" : "已报名"}
+            </h2>
             <div className="max-h-[300px] overflow-y-auto">
               {registrations.map((registration) => {
                 const hasWon = winners.some((w) => w.id === registration.id);

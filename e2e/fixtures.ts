@@ -10,6 +10,9 @@ import { clerk } from "@clerk/testing/playwright";
 import { activityService } from "~/services/activity";
 import { getPocketBaseClientInstance } from "~/lib/pb";
 
+import { fakerZH_CN as faker } from "@faker-js/faker";
+import { generateRandomPhoneNumber } from "./utils";
+
 export interface TestActivity {
   id: string;
   title: string;
@@ -29,6 +32,7 @@ export interface TestFixtures {
   pb: PocketBase;
   createTestActivity: (data?: Partial<TestActivity>) => Promise<TestActivity>;
   deleteTestActivity: (id: string) => Promise<void>;
+  createTestRegistrants: (activityId: string, count: number) => Promise<void>;
   login: (page: Page) => Promise<void>;
 }
 
@@ -58,19 +62,6 @@ if (!TEST_USER_NAME || !TEST_USER_PASSWORD) {
       "TEST_USER_PASSWORD - 测试用户密码",
   );
 }
-// Helper function to create activity title with timestamp
-export const createTimestampTitle = (baseTitle: string) => {
-  const now = new Date();
-  const datePart = now.toLocaleDateString().replace(/\//g, "");
-  const timePart = now
-    .toLocaleTimeString("en-US", { hour12: false })
-    .replace(/:/g, "")
-    .substring(0, 4);
-  const randomDigits = Math.floor(Math.random() * 1000)
-    .toString()
-    .padStart(3, "0");
-  return `${baseTitle}-${datePart}${timePart}-${randomDigits}`;
-};
 
 /* eslint-disable react-hooks/rules-of-hooks */
 // 创建测试固定装置
@@ -154,6 +145,33 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
     };
 
     await use(createActivity);
+  },
+
+  createTestRegistrants: async ({ workerPb }, use) => {
+    const createRegistrants = async (
+      activityId: string,
+      count: number,
+    ): Promise<void> => {
+      const registrants = Array.from({ length: count }, (_, index) => ({
+        name: faker.person.fullName(),
+        phone: generateRandomPhoneNumber(),
+        activity: activityId,
+        isWinner: false,
+      }));
+
+      for (const registrant of registrants) {
+        const reg = await workerPb
+          .collection("registrations")
+          .create(registrant);
+        // 更新活动的报名者列表
+        const act = await workerPb.collection("activities").update(activityId, {
+          "+registrations": reg.id,
+        });
+        // 可以添加一个短暂的延迟来确保数据库操作完成
+        console.log(act, "活动更新成功");
+      }
+    };
+    await use(createRegistrants);
   },
 
   // 删除测试活动的辅助函数

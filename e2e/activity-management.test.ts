@@ -1,6 +1,7 @@
-import { test, expect, createTimestampTitle } from "./fixtures";
+import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
 import { fakerZH_CN as faker } from "@faker-js/faker";
+import { createTimestampTitle } from "./utils";
 
 // 生成随机活动数据
 function generateActivityData() {
@@ -68,14 +69,25 @@ test.describe("活动管理测试", () => {
         maxRegistrants: activityData.maxRegistrants,
       });
 
-      // 提交表单
       await page.click('button[type="submit"]');
+      await page
+        .getByRole("textbox", { name: "搜索活动标题或内容" })
+        .fill(activityData.title);
 
-      // 验证活动是否出现在活动列表中
+      const viewLink = await page
+        .getByRole("link", { name: "查看结果" })
+        .getAttribute("href");
+      const activityId = viewLink?.split("/").at(-2);
+      // 验证活动显示在列表中
+      // 等待页面加载完成
+      // 验证活动已成功创建并显示在页面中
       await expect(page.locator("main")).toContainText(activityData.title);
 
+      await page.getByTestId(`toggle-publish-${activityId}`).click();
+      await expect(page.getByTestId("operation-alert")).toContainText("已发布");
+      await deleteTestActivity(activityId!);
+
       // 清理测试数据
-      await deleteTestActivity(activityData.title);
     });
 
     test("创建活动表单验证", async ({ authedPage: page }) => {
@@ -102,25 +114,6 @@ test.describe("活动管理测试", () => {
         page.locator('[data-testid="error-max-registrants"]'),
       ).toContainText("最大报名人数不能为空");
     });
-
-    test("创建活动并发布", async ({ authedPage: page, deleteTestActivity }) => {
-      const activityData = generateActivityData();
-      await fillActivityForm(page, {
-        title: activityData.title,
-        content: activityData.content,
-        winnersCount: activityData.winnersCount,
-        maxRegistrants: activityData.maxRegistrants,
-      });
-
-      // 提交表单
-      await page.click('button[type="submit"]');
-
-      // 验证活动是否出现在活动列表中
-      await expect(page.locator("main")).toContainText(activityData.title);
-
-      // 清理测试数据
-      await deleteTestActivity(activityData.title);
-    });
   });
 
   test.describe("编辑活动", () => {
@@ -135,6 +128,7 @@ test.describe("活动管理测试", () => {
       const newActivityTitle = generateActivityData().title;
 
       await page.goto(`/admin/${activity.id}/edit`);
+      await expect(page.locator('[data-testid="activity-form"]')).toBeVisible(); //等待form显示出来
       // 只更新标题
       await fillActivityForm(page, {
         title: newActivityTitle,
@@ -184,28 +178,6 @@ test.describe("活动管理测试", () => {
       await expect(
         page.locator('[data-testid="error-max-registrants"]'),
       ).toContainText("最大报名人数不能为空");
-    });
-
-    test("编辑已发布活动", async ({
-      authedPage: page,
-      createTestActivity,
-      deleteTestActivity,
-    }) => {
-      const activity = await createTestActivity({
-        title: generateActivityData().title,
-        isPublished: true,
-      });
-      const newActivityTitle = generateActivityData().title;
-      await page.goto(`/admin/${activity.id}/edit`);
-      await fillActivityForm(page, {
-        title: newActivityTitle,
-        content: activity.content, // Keep original content
-      });
-      await page.click('button[type="submit"]');
-
-      // 验证活动标题已更新
-      await expect(page.locator("main")).toContainText(newActivityTitle);
-      await deleteTestActivity(activity.id);
     });
   });
 

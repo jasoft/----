@@ -19,7 +19,9 @@ export default function RootLayout({
   const content = (
     <html lang="zh-CN" suppressHydrationWarning>
       <body suppressHydrationWarning className="font-sans">
+        <Nav />
         <GlobalToast />
+
         <main className="container mx-auto my-auto">{children}</main>
       </body>
     </html>

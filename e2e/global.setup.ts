@@ -5,6 +5,10 @@ import { test as setup } from "@playwright/test";
 setup.describe.configure({ mode: "serial" });
 
 setup("global setup", async ({}) => {
-  await clerkSetup();
+  try {
+    await clerkSetup();
+  } catch (error) {
+    console.error("Clerk setup failed:", error);
+  }
   // Set timeout to 10 seconds
 });

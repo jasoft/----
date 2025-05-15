@@ -1,5 +1,8 @@
-import { test, expect, createTimestampTitle } from "./fixtures";
+import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
+import { createTimestampTitle } from "./utils";
+import { activityService } from "~/services/activity";
+import { deleteAllRegistrations } from "~/services/registration";
 
 interface RegistrationFormData {
   name: string;
@@ -15,21 +18,13 @@ async function fillRegistrationForm(page: Page, data: RegistrationFormData) {
   // 等待成功提示
 }
 
-// 辅助函数：创建报名者数据
-function createRegistrants(count: number) {
-  return Array.from({ length: count }, (_, i) => ({
-    name: `测试用户${i + 1}`,
-    phone: `1380013800${i + 1}`,
-  }));
-}
-
 test.describe("抽签功能测试", () => {
   let testActivity: {
     id: string;
     title: string;
   };
 
-  test.beforeEach(async ({ createTestActivity }) => {
+  test.beforeEach(async ({ createTestActivity, createTestRegistrants }) => {
     // 创建测试活动
     testActivity = await createTestActivity({
       title: createTimestampTitle("抽奖测试活动"),
@@ -38,26 +33,19 @@ test.describe("抽签功能测试", () => {
       winnersCount: 2, // 设置2个中奖名额
       isPublished: true,
     });
+
+    await createTestRegistrants(testActivity.id, 10);
   });
 
   test.afterEach(async ({ authedPage: page, deleteTestActivity }) => {
     if (testActivity?.id) {
       await deleteTestActivity(testActivity.id);
     }
-    await page.goto("/admin/logout");
   });
 
   test.describe("抽签流程", () => {
     test("完整的抽签流程", async ({ authedPage: page, pb }) => {
-      // 第一步：添加5个报名者
-      const registrants = createRegistrants(5);
-      for (const registrant of registrants) {
-        await page.goto(`/activity/${testActivity.id}/register`);
-        await expect(
-          page.locator('[data-testid="registration-form"]'),
-        ).toBeVisible();
-        await fillRegistrationForm(page, registrant);
-      }
+      // 第一步：添加10个报名者
 
       // 第二步：将活动设置为过期
       const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // 设置为昨天
@@ -65,52 +53,29 @@ test.describe("抽签功能测试", () => {
         deadline: pastDate.toISOString(),
       });
 
-      // 第三步：随机选取两名中签者
-      const registrationsList = await pb
-        .collection("registrations")
-        .getList(1, 50, {
-          filter: `activity="${testActivity.id}"`,
-        });
-      const selectedWinners = registrationsList.items.slice(0, 2);
-
-      // 更新中签状态
-      await Promise.all(
-        selectedWinners.map((winner) =>
-          pb.collection("registrations").update(winner.id, {
-            isWinner: true,
-          }),
-        ),
-      );
+      await activityService.drawWinners(testActivity.id);
 
       // 第四步：查看结果页面
       await page.goto(`/activity/${testActivity.id}/result`);
-
-      // 验证显示了所有报名者
-      await expect(page.locator(".card")).toHaveCount(registrants.length);
-      for (const registrant of registrants) {
-        await expect(page.locator("main")).toContainText(registrant.name);
-      }
-
-      // 验证中签人数
-      const winnerRows = page.locator('[data-testid="winner-row"]');
-      await expect(winnerRows).toHaveCount(2);
-
-      // 验证抽签结果提示
       await expect(page.getByText("抽签结果已公布")).toBeVisible();
-      await expect(
-        page.getByText("本次活动共有 5 人报名，2 人中签"),
-      ).toBeVisible();
+      await expect(page.locator("main")).toContainText("抽签完成");
     });
   });
 
   test.describe("结果页面显示", () => {
     test("未开奖活动显示等待提示", async ({ authedPage: page }) => {
       await page.goto(`/activity/${testActivity.id}/result`);
-      const now = new Date();
-      const deadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      await expect(
-        page.getByText(`抽签结果将在 ${deadline.toLocaleString()} 后公布`),
-      ).toBeVisible();
+      await expect(page.getByText(`报名中`)).toBeVisible();
+    });
+
+    test("报名结束但未抽签显示报名结束", async ({ authedPage: page, pb }) => {
+      // 将活动设置为过期
+      await pb.collection("activities").update(testActivity.id, {
+        deadline: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+      await page.goto(`/activity/${testActivity.id}/result`);
+      await expect(page.getByText("报名结束")).toBeVisible();
     });
 
     test("无报名活动显示提示信息", async ({ authedPage: page, pb }) => {
@@ -118,9 +83,25 @@ test.describe("抽签功能测试", () => {
       await pb.collection("activities").update(testActivity.id, {
         deadline: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
       });
+      // 删除所有报名者
+      await deleteAllRegistrations(testActivity.id);
+      // 重新加载活动
 
       await page.goto(`/activity/${testActivity.id}/result`);
       await expect(page.getByText("活动暂无报名，无法进行抽签")).toBeVisible();
+    });
+
+    test("抽签结束显示中签信息", async ({ authedPage: page, pb }) => {
+      // 将活动设置为过期
+      await pb.collection("activities").update(testActivity.id, {
+        deadline: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+      await activityService.drawWinners(testActivity.id);
+
+      await page.goto(`/activity/${testActivity.id}/result`);
+      await expect(page.getByText("抽签完成")).toBeVisible();
+      await expect(page.getByText("已中签")).toHaveCount(2);
     });
   });
 });

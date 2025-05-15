@@ -114,3 +114,34 @@ export async function submitRegistration(
     success: true,
   };
 }
+
+/**
+ * 删除活动的所有报名记录
+ */
+export async function deleteAllRegistrations(
+  activityId: string,
+): Promise<void> {
+  const pb = getPocketBaseClientInstance();
+
+  try {
+    // 获取所有报名记录
+    const registrations = await pb
+      .collection(Collections.REGISTRATIONS)
+      .getFullList({
+        filter: `activity="${activityId}"`,
+      });
+
+    // 删除所有报名记录
+    for (const reg of registrations) {
+      await pb.collection(Collections.REGISTRATIONS).delete(reg.id);
+    }
+
+    // 清空活动的registrations字段
+    await pb.collection(Collections.ACTIVITIES).update(activityId, {
+      registrations: [],
+    });
+  } catch (error) {
+    console.error("Failed to delete registrations:", error);
+    throw new Error("删除报名记录失败，请稍后重试");
+  }
+}

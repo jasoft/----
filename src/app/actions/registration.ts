@@ -1,6 +1,9 @@
 "use server";
 
-import { submitRegistration } from "~/services/registration";
+import {
+  submitRegistration,
+  deleteAllRegistrations,
+} from "~/services/registration";
 
 interface RegistrationSuccess {
   success: true;
@@ -13,6 +16,11 @@ interface RegistrationError {
 }
 
 type RegistrationResult = RegistrationSuccess | RegistrationError;
+
+interface DeleteResult {
+  success: boolean;
+  error?: string;
+}
 
 export async function createRegistration(
   activityId: string,
@@ -31,6 +39,22 @@ export async function createRegistration(
       error instanceof Error ? error.message : "报名失败，请稍后重试";
 
     // 失败时返回错误信息
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+export async function deleteRegistrations(
+  activityId: string,
+): Promise<DeleteResult> {
+  try {
+    await deleteAllRegistrations(activityId);
+    return { success: true };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "删除报名记录失败，请稍后重试";
     return {
       success: false,
       error: errorMessage,
