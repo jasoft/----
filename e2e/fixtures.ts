@@ -7,6 +7,8 @@ import {
 import PocketBase, { ClientResponseError } from "pocketbase";
 import { setupClerkTestingToken } from "@clerk/testing/playwright";
 import { clerk } from "@clerk/testing/playwright";
+import { activityService } from "~/services/activity";
+import { getPocketBaseClientInstance } from "~/lib/pb";
 
 export interface TestActivity {
   id: string;
@@ -56,6 +58,19 @@ if (!TEST_USER_NAME || !TEST_USER_PASSWORD) {
       "TEST_USER_PASSWORD - 测试用户密码",
   );
 }
+// Helper function to create activity title with timestamp
+export const createTimestampTitle = (baseTitle: string) => {
+  const now = new Date();
+  const datePart = now.toLocaleDateString().replace(/\//g, "");
+  const timePart = now
+    .toLocaleTimeString("en-US", { hour12: false })
+    .replace(/:/g, "")
+    .substring(0, 4);
+  const randomDigits = Math.floor(Math.random() * 1000)
+    .toString()
+    .padStart(3, "0");
+  return `${baseTitle}-${datePart}${timePart}-${randomDigits}`;
+};
 
 /* eslint-disable react-hooks/rules-of-hooks */
 // 创建测试固定装置
@@ -63,7 +78,7 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
   // Worker 级别的 PocketBase 实例
   workerPb: [
     async ({}, use) => {
-      const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+      const pb = getPocketBaseClientInstance();
       await use(pb);
     },
     { scope: "worker" },
@@ -107,8 +122,8 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
     const createActivity = async (
       data: Partial<TestActivity> = {},
     ): Promise<TestActivity> => {
-      // 创建活动时移除 isPublished 字段
-      const { isPublished, ...activityData } = {
+      // 合并默认数据和传入的数据
+      const activityData = {
         ...DEFAULT_TEST_ACTIVITY,
         ...data,
       };
@@ -128,7 +143,7 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
           maxRegistrants: record.maxRegistrants,
           created: record.created,
           updated: record.updated,
-          isPublished: isPublished ?? DEFAULT_TEST_ACTIVITY.isPublished,
+          isPublished: record.isPublished,
         };
 
         return testActivity;
@@ -146,7 +161,7 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
     const deleteActivity = async (id: string): Promise<void> => {
       try {
         // 然后删除活动
-        await workerPb.collection("activities").delete(id);
+        await activityService.deleteActivity(id);
       } catch (error) {
         if (!(error instanceof ClientResponseError && error.status === 404)) {
           throw error;
@@ -170,6 +185,7 @@ interface ActivityRecord {
   deadline: string;
   winnersCount: number;
   maxRegistrants: number;
+  isPublished: boolean;
 }
 
 // 导出类型和工具函数

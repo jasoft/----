@@ -1,24 +1,39 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { submitRegistration } from "~/services/registration";
+
+interface RegistrationSuccess {
+  success: true;
+  redirect: string;
+}
+
+interface RegistrationError {
+  success: false;
+  error: string;
+}
+
+type RegistrationResult = RegistrationSuccess | RegistrationError;
 
 export async function createRegistration(
   activityId: string,
   formData: FormData,
-) {
+): Promise<RegistrationResult> {
   try {
     await submitRegistration(activityId, formData);
 
-    // 成功后重定向到结果页面
-    redirect(`/activity/${activityId}/result`);
+    // 成功后返回重定向URL
+    return {
+      success: true,
+      redirect: `/activity/${activityId}/result`,
+    };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "报名失败，请稍后重试";
 
-    // 失败时重定向回报名页面并显示错误信息
-    const searchParams = new URLSearchParams();
-    searchParams.set("error", errorMessage);
-    redirect(`/activity/${activityId}/register?${searchParams.toString()}`);
+    // 失败时返回错误信息
+    return {
+      success: false,
+      error: errorMessage,
+    };
   }
 }

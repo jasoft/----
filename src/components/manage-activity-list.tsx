@@ -152,17 +152,20 @@ export function ManageActivityList({
                   <a
                     href={`/activity/${activity.id}/result`}
                     className="btn btn-sm btn-info w-full"
+                    data-testid={`view-result-${activity.id}`}
                   >
                     查看结果
                   </a>
                   <a
                     href={`/admin/${activity.id}`}
                     className="btn btn-sm btn-secondary w-full"
+                    data-testid={`edit-activity-${activity.id}`}
                   >
                     编辑活动
                   </a>
                   <button
                     onClick={() => void handleTogglePublish(activity)}
+                    data-testid={`toggle-publish-${activity.id}`}
                     className={`btn btn-sm w-full ${
                       activity.isPublished ? "btn-warning" : "btn-success"
                     }`}

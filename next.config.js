@@ -17,7 +17,7 @@ const config = {
     ],
   },
   productionBrowserSourceMaps: true,
-  allowedDevOrigins: ["192.168.1.150", "*.soj.myds.me"],
+  // 禁用开发工具
 };
 
 export default config;

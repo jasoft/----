@@ -52,6 +52,27 @@ export class ActivityService {
   async deleteActivity(id: string) {
     return executeAuthenticatedOperation(async () => {
       try {
+        // 1. 获取活动及其所有报名记录
+        const activity = await this.pb
+          .collection(Collections.ACTIVITIES)
+          .getOne<Activity>(id, {
+            expand: "registrations",
+          });
+
+        const registrations = activity.expand?.registrations ?? [];
+
+        // 2. 删除所有关联的报名记录
+        if (registrations.length > 0) {
+          await Promise.all(
+            registrations.map((registration) =>
+              this.pb
+                .collection(Collections.REGISTRATIONS)
+                .delete(registration.id),
+            ),
+          );
+        }
+
+        // 3. 删除活动本身
         await this.pb.collection(Collections.ACTIVITIES).delete(id);
       } catch (error) {
         if (error instanceof Error) {
@@ -71,7 +92,7 @@ export class ActivityService {
         .collection(Collections.ACTIVITIES)
         .getOne<Activity>(id, {
           expand: "registrations",
-          $autoCancel: false,
+          requestKey: null,
         });
       return record;
     } catch (error) {

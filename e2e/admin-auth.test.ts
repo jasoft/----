@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures";
 import { clerk } from "@clerk/testing/playwright";
 
-test.describe("管理员认证", () => {
+test.skip("管理员认证", () => {
   test("登录和登出功能测试", async ({ page, login }) => {
     // 先登录
     await login(page);

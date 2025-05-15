@@ -36,17 +36,42 @@ export function RegistrationForm({ activityId, error }: RegistrationFormProps) {
   const {
     register,
     formState: { errors },
+    handleSubmit,
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
+    mode: "onSubmit",
   });
+
+  const onSubmit = async (data: RegistrationFormData) => {
+    const formData = new FormData();
+    // 将表单数据添加到 FormData 中
+    formData.append("name", data.name);
+    formData.append("phone", data.phone);
+    formData.append("activity", activityId);
+
+    try {
+      const result = await createRegistration(activityId, formData);
+      if ("redirect" in result) {
+        // 成功时客户端重定向
+        window.location.href = result.redirect;
+      } else if ("error" in result) {
+        // 失败时添加错误参数并重载页面
+        const searchParams = new URLSearchParams(window.location.search);
+        searchParams.set("error", result.error);
+        window.location.search = searchParams.toString();
+      }
+    } catch (e) {
+      console.error("Registration failed:", e);
+      // 发生未预期的错误时显示通用错误消息
+      const searchParams = new URLSearchParams(window.location.search);
+      searchParams.set("error", "报名失败，请稍后重试");
+      window.location.search = searchParams.toString();
+    }
+  };
 
   return (
     <form
-      action={async (formData: FormData) => {
-        // 将活动ID添加到表单数据中
-        formData.append("activity", activityId);
-        await createRegistration(activityId, formData);
-      }}
+      onSubmit={handleSubmit(onSubmit)}
       className="space-y-4"
       data-testid="registration-form"
     >
@@ -64,6 +89,7 @@ export function RegistrationForm({ activityId, error }: RegistrationFormProps) {
           姓名
         </label>
         <Input
+          {...register("name")}
           id="name"
           name="name"
           data-testid="registration-name"
@@ -83,6 +109,7 @@ export function RegistrationForm({ activityId, error }: RegistrationFormProps) {
           手机号码
         </label>
         <Input
+          {...register("phone")}
           id="phone"
           name="phone"
           type="tel"
@@ -98,7 +125,11 @@ export function RegistrationForm({ activityId, error }: RegistrationFormProps) {
         )}
       </div>
 
-      <SubmitButton className="w-full" pendingText="提交报名中...">
+      <SubmitButton
+        data-testid="submit-registration"
+        className="w-full"
+        pendingText="提交报名中..."
+      >
         提交报名
       </SubmitButton>
     </form>

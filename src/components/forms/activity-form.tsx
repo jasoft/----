@@ -117,8 +117,12 @@ export function ActivityForm({
 
   const winnersCount = watch("winnersCount");
 
-  // 获取当前时间（固定时区）
-  const now = dayjs().tz(TIMEZONE).format("YYYY-MM-DDTHH:mm:ss");
+  // 使用整分钟时间，避免服务端和客户端秒级差异
+  const now = dayjs()
+    .tz(TIMEZONE)
+    .add(1, "minute")
+    .startOf("minute")
+    .format("YYYY-MM-DDTHH:mm:00");
 
   const handleFormSubmit = handleSubmit((data: ActivityFormData) => {
     try {

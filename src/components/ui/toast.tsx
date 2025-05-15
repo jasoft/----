@@ -45,6 +45,7 @@ export function GlobalToast() {
             onClick={hideToast}
             className="absolute top-2 right-2 opacity-70 hover:opacity-100 focus:opacity-100"
             aria-label="关闭提示"
+            data-testid="close-toast"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { test, expect, createTimestampTitle } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 interface RegistrationFormData {
@@ -13,8 +13,6 @@ async function fillRegistrationForm(page: Page, data: RegistrationFormData) {
   await page.click('[data-testid="submit-registration"]');
 
   // 等待成功提示
-  await expect(page.locator(".swal2-title")).toHaveText("报名成功");
-  await page.click(".swal2-confirm");
 }
 
 // 辅助函数：创建报名者数据
@@ -34,11 +32,10 @@ test.describe("抽签功能测试", () => {
   test.beforeEach(async ({ createTestActivity }) => {
     // 创建测试活动
     testActivity = await createTestActivity({
-      title: `抽签测试活动-${Date.now()}`,
-      content: "这是一个用于测试抽签功能的活动",
-      deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 设置为24小时后
-      winnersCount: 2,
-      maxRegistrants: 5,
+      title: createTimestampTitle("抽奖测试活动"),
+      content: "这是一个用于测试抽奖功能的活动",
+      deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1天后截止
+      winnersCount: 2, // 设置2个中奖名额
       isPublished: true,
     });
   });

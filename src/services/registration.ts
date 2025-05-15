@@ -77,6 +77,11 @@ export async function submitRegistration(
     throw new Error("活动已截止报名");
   }
 
+  // 检查活动是否已发布
+  if (!activity.isPublished) {
+    throw new Error("活动未发布，无法报名");
+  }
+
   // 检查报名人数是否已满
   const registrationsCount = await pb
     .collection(Collections.REGISTRATIONS)
@@ -90,10 +95,14 @@ export async function submitRegistration(
 
   // 创建报名记录
   try {
-    await pb.collection(Collections.REGISTRATIONS).create({
+    const reg = await pb.collection(Collections.REGISTRATIONS).create({
       activity: activityId,
       name,
       phone,
+    });
+
+    await pb.collection(Collections.ACTIVITIES).update(activityId, {
+      "+registrations": reg.id,
     });
   } catch (error) {
     console.error("Failed to create registration:", error);

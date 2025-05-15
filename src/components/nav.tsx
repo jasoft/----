@@ -4,12 +4,11 @@ import { env } from "~/env.mjs";
 
 export function Nav() {
   const isTestMode = env.NEXT_PUBLIC_SKIP_AUTH_IN_TEST === "true";
-
   return (
     <div className="sticky top-0 z-50 w-full">
       <div className="navbar bg-base-100 border-b border-neutral-200 shadow-sm">
         <div className="navbar-start">
-          <div className="text-xl font-bold">活动报名系统</div>
+          <div className="text-l font-bold">活动报名系统</div>
         </div>
         <div className="navbar-center">
           <NavLinks />

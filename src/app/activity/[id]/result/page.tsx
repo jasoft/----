@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { type Activity } from "~/lib/pb";
 import { ResultDisplay } from "./result-display";
 import { activityService } from "~/services/activity";
 
@@ -39,10 +38,7 @@ export default async function ResultPage({ params }: Props) {
     const now = new Date();
     const deadline = new Date(activity.deadline);
     const isPending = now < deadline;
-    console.log("Activity status:", {
-      isPending,
-      deadline: deadline.toISOString(),
-    });
+    console.log("Activity", activity);
 
     // 从展开的registrations字段获取报名和中签信息
     const registrations = activity.expand?.registrations ?? [];

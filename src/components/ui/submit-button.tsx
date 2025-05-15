@@ -20,6 +20,7 @@ export function SubmitButton({
   return (
     <button
       type="submit"
+      data-testid="submit-button"
       disabled={pending}
       className={cn(
         "btn btn-primary w-full",
