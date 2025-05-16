@@ -22,6 +22,7 @@ interface ActivityFormData {
   deadline?: Date;
   winnersCount?: string;
   maxRegistrants?: string;
+  isPublished?: boolean;
 }
 
 // 辅助函数：填写活动表单
@@ -29,6 +30,15 @@ async function fillActivityForm(page: Page, data: ActivityFormData) {
   console.log("填写活动表单", data);
   await page.fill('[data-testid="activity-title"]', data.title);
   await page.fill('[data-testid="activity-content"]', data.content);
+  // 处理发布状态
+  if (data.isPublished !== undefined) {
+    const checkbox = page.locator('[data-testid="activity-is-published"]');
+    // 确保勾选状态与 isPublished 一致
+    const isChecked = await checkbox.isChecked();
+    if ((isChecked && !data.isPublished) || (!isChecked && data.isPublished)) {
+      await checkbox.click();
+    }
+  }
 
   // 处理截止时间
   const now = new Date();
@@ -67,6 +77,7 @@ test.describe("活动管理测试", () => {
         content: activityData.content,
         winnersCount: activityData.winnersCount,
         maxRegistrants: activityData.maxRegistrants,
+        isPublished: false,
       });
 
       await page.click('button[type="submit"]');
@@ -75,7 +86,7 @@ test.describe("活动管理测试", () => {
         .fill(activityData.title);
 
       const viewLink = await page
-        .getByRole("link", { name: "查看结果" })
+        .getByRole("link", { name: "查看报名" })
         .getAttribute("href");
       const activityId = viewLink?.split("/").at(-2);
       // 验证活动显示在列表中

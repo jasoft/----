@@ -88,7 +88,7 @@ test.describe("抽签功能测试", () => {
       // 重新加载活动
 
       await page.goto(`/activity/${testActivity.id}/result`);
-      await expect(page.getByText("活动暂无报名，无法进行抽签")).toBeVisible();
+      await expect(page.getByText("暂无报名")).toBeVisible();
     });
 
     test("抽签结束显示中签信息", async ({ authedPage: page, pb }) => {

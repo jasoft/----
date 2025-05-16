@@ -14,13 +14,14 @@ import type { Activity, Registration } from "~/lib/pb";
 import { formatDate } from "~/lib/utils";
 import { Dialog } from "~/components/ui/dialog";
 import { Card } from "~/components/ui/card";
-import { ClockIcon, MapPinIcon } from "@heroicons/react/24/outline";
+import { ClockIcon, LinkIcon } from "@heroicons/react/24/outline";
 
 interface ResultDisplayProps {
   activity: Activity;
   registrations: Registration[];
   winners: Registration[];
   isPending: boolean;
+  isPublished: boolean;
 }
 
 export function ResultDisplay({
@@ -28,6 +29,7 @@ export function ResultDisplay({
   registrations,
   winners,
   isPending,
+  isPublished,
 }: ResultDisplayProps) {
   const [mounted, setMounted] = useState(false);
   const formattedDeadline = formatDate(activity.deadline);
@@ -100,9 +102,28 @@ export function ResultDisplay({
     }
   }, [isPending, registrationCount, winnerCount]);
 
+  if (!isPublished) {
+    return (
+      <div className="flex min-h-screen flex-col bg-gradient-to-b from-blue-50 to-white">
+        <div className="container mx-auto flex-1 space-y-6 px-4 py-6">
+          <Card className="rounded-lg bg-white p-6 shadow-md">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold md:text-3xl">
+                {activity.title}
+              </h1>
+            </div>
+            <div className="py-4 text-center text-red-600">
+              该活动尚未发布，暂时无法查看结果
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-blue-50 to-white">
-      <div className="container mx-auto flex-1 space-y-6 px-4 py-6">
+      <div className="container mx-auto flex-1 space-y-4 px-4 py-6">
         {/* 活动概览区 */}
         <Card className="rounded-lg bg-white p-6 shadow-md">
           <div className="mb-6 flex items-center gap-3">
@@ -148,6 +169,34 @@ export function ResultDisplay({
                   </>
                 )}
               </span>
+            </div>
+          </div>
+
+          <div className="mt-4 border-t pt-4 text-gray-600">
+            <div className="mb-2 flex items-center gap-2">
+              <LinkIcon className="h-5 w-5 shrink-0" />
+              <span className="text-sm">分享链接：</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="w-full rounded bg-gray-100 px-2 py-1 text-sm break-all sm:w-auto sm:flex-1">
+                {mounted
+                  ? `${window.location.origin}/s/${activity.id}`
+                  : "加载中..."}
+              </code>
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/s/${activity.id}`;
+                  void navigator.clipboard.writeText(url).then(() => {
+                    void Dialog.success(
+                      "复制成功",
+                      "链接已复制到剪贴板, 可以粘贴到其他APP分享",
+                    );
+                  });
+                }}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                复制
+              </button>
             </div>
           </div>
         </Card>
@@ -223,16 +272,13 @@ export function ResultDisplay({
         )}
 
         {registrationCount === 0 && (
-          <Card className="rounded-lg bg-white p-6 text-center text-gray-600 shadow-md">
-            活动暂无报名，无法进行抽签
+          <Card className="rounded-lg bg-white p-2 text-center text-gray-600 shadow-md">
+            暂无报名, 做第一位报名者吧！
           </Card>
         )}
 
         {isPending && (
           <>
-            <Card className="rounded-lg bg-yellow-50 p-6 text-center text-yellow-800 shadow-md">
-              抽签结果将在 {formattedDeadline} 后公布
-            </Card>
             {dayjs().isBefore(dayjs(activity.deadline)) && (
               <div className="mt-6 mb-20 text-center">
                 <Link

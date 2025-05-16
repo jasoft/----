@@ -58,6 +58,7 @@ export default async function ResultPage({ params }: Props) {
         registrations={registrations}
         winners={winners}
         isPending={isPending}
+        isPublished={activity.isPublished}
       />
     );
   } catch (error) {

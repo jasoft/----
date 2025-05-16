@@ -32,9 +32,15 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 function ExpiredState({ title }: { title: string }) {
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold">{title}</h1>
-      <div className="rounded-lg bg-red-50 p-4 text-red-800">报名已截止</div>
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-blue-50 to-white">
+      <div className="container mx-auto flex-1 space-y-6 px-4 py-6">
+        <div className="rounded-lg bg-white p-6 shadow-md">
+          <h1 className="mb-6 text-2xl font-bold md:text-3xl">{title}</h1>
+          <div className="rounded-lg bg-red-50 p-4 text-red-800">
+            报名已截止
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -60,23 +66,40 @@ export default async function RegisterPage(props: Props) {
   }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold">{activity.title}</h1>
-      <div className="mb-8 space-y-4">
-        <p className="text-sm text-neutral-500">
-          报名截止时间: {formatDate(activity.deadline)}
-        </p>
-        <div className="prose dark:prose-invert max-w-none">
-          {activity.content}
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-blue-50 to-white">
+      <div className="container mx-auto flex-1 space-y-6 px-4 py-6">
+        <div className="rounded-lg bg-white p-6 shadow-md">
+          <h1 className="mb-6 text-2xl font-bold md:text-3xl">
+            {activity.title}
+          </h1>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600">
+                报名截止时间: {formatDate(activity.deadline)}
+              </p>
+              <p className="text-sm text-gray-600">
+                中签名额: {activity.winnersCount}人
+              </p>
+            </div>
+          </div>
         </div>
-        <p className="text-sm text-neutral-500">
-          中签名额: {activity.winnersCount}人
-        </p>
-      </div>
 
-      <div className="rounded-lg border border-neutral-200 p-6">
-        <h2 className="mb-6 text-xl font-semibold">报名表单</h2>
-        <RegistrationForm activityId={activity.id} error={searchParams.error} />
+        <div className="rounded-lg bg-white p-6 shadow-md">
+          <h2 className="mb-6 text-xl font-semibold">活动描述</h2>
+          <div className="prose max-w-none text-gray-600">
+            <p className="leading-relaxed whitespace-pre-wrap">
+              {activity.content}
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-white p-6 shadow-md">
+          <h2 className="mb-6 text-xl font-semibold">报名表单</h2>
+          <RegistrationForm
+            activityId={activity.id}
+            error={searchParams.error}
+          />
+        </div>
       </div>
     </div>
   );

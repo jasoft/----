@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { type Activity } from "~/lib/pb";
 import { ManageActivityList } from "~/components/manage-activity-list";
@@ -20,6 +21,11 @@ export default function AdminPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+
+  const toggleFilter = useCallback(() => {
+    setIsFilterVisible((prev) => !prev);
+  }, []);
 
   const loadActivities = async () => {
     setIsLoading(true);
@@ -111,8 +117,23 @@ export default function AdminPage() {
           </Link>
         </div>
 
+        {/* 移动端过滤切换按钮 */}
+        <button
+          onClick={toggleFilter}
+          className="mb-4 flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white p-3 text-sm font-medium text-neutral-600 shadow-sm md:hidden"
+        >
+          筛选和排序
+          {isFilterVisible ? (
+            <ChevronUpIcon className="h-5 w-5" />
+          ) : (
+            <ChevronDownIcon className="h-5 w-5" />
+          )}
+        </button>
+
         {/* 筛选和排序工具栏 */}
-        <div className="mb-6 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+        <div
+          className={`mb-6 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm md:block ${isFilterVisible ? "block" : "hidden"}`}
+        >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="flex flex-col">
               <label className="mb-1 text-sm font-medium text-neutral-500">

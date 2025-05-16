@@ -57,19 +57,43 @@ export function ManageActivityList({
   };
 
   const handleDraw = async (activity: Activity) => {
-    const confirmed = await Dialog.confirm(
-      "确认抽签",
-      `确定要为活动"${activity.title}"进行抽签吗？此操作不可撤销。`,
-    );
+    try {
+      const hasDrawn = activity.expand?.registrations?.some((r) => r.isWinner);
 
-    if (confirmed) {
-      try {
-        await activityService.drawWinners(activity.id);
-        showToast("抽签完成", "success");
-        onDeleted?.();
-      } catch (error) {
-        showToast(error instanceof Error ? error.message : "抽签失败", "error");
+      if (hasDrawn) {
+        const confirmed = await Dialog.confirm(
+          "重新抽签",
+          `活动"${activity.title}"已经完成抽签，是否要重新抽签？\n\n注意：此操作将清除当前的抽签结果，重新进行抽签。`,
+        );
+
+        if (!confirmed) {
+          return;
+        }
+      } else if (!isExpired(activity.deadline)) {
+        const confirmed = await Dialog.confirm(
+          "提前结束活动",
+          `活动"${activity.title}"还未到结束时间，是否要提前结束活动并进行抽签？\n\n注意：此操作将把活动截止时间改为当前时间，并立即进行抽签。`,
+        );
+
+        if (!confirmed) {
+          return;
+        }
+
+        // 更新截止时间为当前时间-1分钟
+        const newDeadline = new Date(Date.now() - 60000).toISOString();
+        await activityService.updateActivity(activity.id, {
+          deadline: newDeadline,
+        });
       }
+
+      await activityService.drawWinners(activity.id);
+      showToast(hasDrawn ? "已重新抽签" : "抽签完成", "success");
+      onDeleted?.();
+
+      // 跳转到结果页面
+      window.location.href = `/activity/${activity.id}/result`;
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "抽签失败", "error");
     }
   };
 
@@ -79,6 +103,7 @@ export function ManageActivityList({
         const expired = isExpired(activity.deadline);
         const registrations = activity.expand?.registrations ?? [];
         const registrationsCount = registrations.length;
+        const hasDrawn = registrations.some((r) => r.isWinner);
 
         return (
           <div
@@ -89,8 +114,11 @@ export function ManageActivityList({
             }`}
           >
             <div className="card-body">
-              <div className="flex items-center justify-between">
-                <h2 className="card-title">{activity.title}</h2>
+              <h2 className="card-title mb-2">{activity.title}</h2>
+              <div className="flex flex-wrap gap-2">
+                {hasDrawn && (
+                  <span className="badge badge-success">已抽签</span>
+                )}
                 <span
                   className={`badge ${
                     activity.isPublished ? "badge-primary" : "badge-ghost"
@@ -154,7 +182,7 @@ export function ManageActivityList({
                     className="btn btn-sm btn-info w-full"
                     data-testid={`view-result-${activity.id}`}
                   >
-                    查看结果
+                    查看报名
                   </a>
                   <a
                     href={`/admin/${activity.id}/edit`}
@@ -172,13 +200,13 @@ export function ManageActivityList({
                   >
                     {activity.isPublished ? "停止发布" : "开始发布"}
                   </button>
-                  {expired && registrationsCount > 0 && (
+                  {registrationsCount > 0 && (
                     <button
                       onClick={() => void handleDraw(activity)}
                       className="btn btn-sm btn-primary w-full"
                       data-testid={`draw-activity-${activity.id}`}
                     >
-                      执行抽签
+                      {hasDrawn ? "重新抽签" : "执行抽签"}
                     </button>
                   )}
                   <button

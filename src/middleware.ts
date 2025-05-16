@@ -5,7 +5,18 @@ import { env } from "./env.mjs";
 
 // 测试环境中间件
 const testMiddleware = async (req: NextRequest) => {
-  if (req.nextUrl.pathname === "/") {
+  const { pathname } = req.nextUrl;
+
+  // 处理短链接重定向
+  if (pathname.startsWith("/s/")) {
+    const activityId = pathname.split("/")[2];
+    if (activityId) {
+      const resultUrl = new URL(`/activity/${activityId}/result`, req.url);
+      return NextResponse.redirect(resultUrl);
+    }
+  }
+
+  if (pathname === "/") {
     const userUrl = new URL("/user", req.url);
     return NextResponse.redirect(userUrl);
   }
@@ -17,7 +28,18 @@ const testMiddleware = async (req: NextRequest) => {
 const productionMiddleware = clerkMiddleware(async (auth, req) => {
   const isProtectedRoute = createRouteMatcher(["/admin(.*)"]);
   const { userId } = await auth();
-  if (req.nextUrl.pathname === "/") {
+  const { pathname } = req.nextUrl;
+
+  // 处理短链接重定向
+  if (pathname.startsWith("/s/")) {
+    const activityId = pathname.split("/")[2];
+    if (activityId) {
+      const resultUrl = new URL(`/activity/${activityId}/result`, req.url);
+      return NextResponse.redirect(resultUrl);
+    }
+  }
+
+  if (pathname === "/") {
     const userUrl = new URL("/user", req.url);
     return NextResponse.redirect(userUrl);
   }
@@ -39,6 +61,8 @@ export default middleware;
 
 export const config = {
   matcher: [
+    // 短链接路径
+    "/s/:id*",
     // 跳过Next.js内部和所有静态文件
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // 始终运行API路由

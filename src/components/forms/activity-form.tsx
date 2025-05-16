@@ -111,7 +111,7 @@ export function ActivityForm({
         defaultDeadline.format("YYYY-MM-DDTHH:mm:ss"),
       winnersCount: defaultValues?.winnersCount?.toString() ?? "",
       maxRegistrants: defaultValues?.maxRegistrants?.toString() ?? "",
-      isPublished: defaultValues?.isPublished ?? false,
+      isPublished: defaultValues?.isPublished ?? true,
     },
   });
 
@@ -194,7 +194,7 @@ export function ActivityForm({
           {...register("content")}
           placeholder="请输入活动内容"
           className={cn(
-            "h-32 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-950 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-950 dark:placeholder:text-neutral-400 dark:focus-visible:ring-neutral-300",
+            "h-32 w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm break-words shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-950 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-950 dark:placeholder:text-neutral-400 dark:focus-visible:ring-neutral-300",
             errors.content && "border-red-500 focus-visible:ring-red-500",
           )}
         />
@@ -253,10 +253,10 @@ export function ActivityForm({
             {errors.winnersCount.message}
           </p>
         )}
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm break-words text-gray-500">
           建议设置合理的中签人数，通常不超过预期报名人数的50%
           {Number(winnersCount) > 500 && (
-            <span className="text-yellow-500">
+            <span className="mt-1 block text-yellow-500">
               （当前设置的人数较多，请确认是否合理）
             </span>
           )}
@@ -288,19 +288,23 @@ export function ActivityForm({
             {errors.maxRegistrants.message}
           </p>
         )}
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm break-words text-gray-500">
           请设置合理的最大报名人数，必须大于等于中签人数
         </p>
       </div>
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-start space-x-2">
         <input
           type="checkbox"
           id="isPublished"
+          data-testid="activity-is-published"
           {...register("isPublished")}
           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
-        <label htmlFor="isPublished" className="text-sm font-medium">
+        <label
+          htmlFor="isPublished"
+          className="text-sm font-medium break-words"
+        >
           发布活动（发布后才会显示在报名列表中）
         </label>
       </div>
