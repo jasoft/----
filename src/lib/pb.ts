@@ -22,7 +22,6 @@ interface BaseRecord {
 export interface ActivityData {
   title: string;
   content: string;
-  description: string;
   deadline: string;
   winnersCount: number;
   isPublished: boolean;

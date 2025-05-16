@@ -3,18 +3,14 @@ import { activityService } from "~/services/activity";
 import { notFound } from "next/navigation";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
-  searchParams: {
-    error?: string;
-  };
+  }>;
 }
 
 export default async function EditActivityPage({ params }: PageProps) {
+  const { id } = await params;
   try {
-    // eslint-disable-next-line @typescript-eslint/await-thenable
-    const { id } = await params;
     const activity = await activityService.getActivity(id);
 
     return (

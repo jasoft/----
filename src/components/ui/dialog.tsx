@@ -8,7 +8,6 @@ type AlertIcon = "success" | "error" | "warning" | "info";
 type ConfirmIcon = "warning" | "question";
 
 // 创建支持React内容的Swal实例
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 const ReactSwal = withReactContent(Swal);
 
 // Alert 类型对话框
@@ -17,7 +16,6 @@ export const showAlert = (
   text?: string,
   icon: AlertIcon = "info",
 ): Promise<SweetAlertResult<unknown>> => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
   return ReactSwal.fire({
     title,
     text,
@@ -34,7 +32,6 @@ export const showConfirm = async (
   icon: ConfirmIcon = "warning",
 ): Promise<boolean> => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const result = await ReactSwal.fire({
       title,
       text,
@@ -46,7 +43,6 @@ export const showConfirm = async (
       reverseButtons: true,
       focusConfirm: true,
     });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
     return Boolean(result.isConfirmed);
   } catch {
     return false;
@@ -60,7 +56,6 @@ export const showModal = (
   confirmButtonText = "确认",
   showCancelButton = false,
 ): Promise<SweetAlertResult<unknown>> => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
   return ReactSwal.fire({
     title,
     html,
