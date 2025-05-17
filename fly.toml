@@ -1,38 +1,40 @@
-# fly.toml app configuration file generated for randpick on 2025-05-16T16:59:10+08:00
+# fly.toml app configuration file generated for randpick on 2025-05-17T18:19:55+08:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = "randpick"
-primary_region = "lax"
+app = 'randpick'
+primary_region = 'lax'
 
 [build]
 
-[http_service]
-internal_port = 3000
-force_https = true
-auto_stop_machines = "stop"
-auto_start_machines = true
-min_machines_running = 0
-max_machines_running = 1
-processes = ["app"]
+[[mounts]]
+  source = 'pb_data'
+  destination = '/app/pb/pb_data'
 
-[mounts]
-source = "pb_data"
-destination = "/app/pb/pb_data"
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
 
 [[services]]
-http_checks = []
-internal_port = 8090
-protocol = "tcp"
-force_https = true
+  protocol = 'tcp'
+  internal_port = 8090
+  processes = ['app']
 
-[[services.ports]]
-handlers = ["tls", "http"]
-port = 8090
+  [[services.ports]]
+    port = 8090
+    handlers = ['tls', 'http']
 
-[[services.tcp_checks]]
-grace_period = "1s"
-interval = "15s"
-restart_limit = 0
-timeout = "2s"
+  [[services.tcp_checks]]
+    interval = '15s'
+    timeout = '2s'
+    grace_period = '1s'
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
