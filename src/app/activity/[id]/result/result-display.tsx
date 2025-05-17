@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -36,29 +36,32 @@ export function ResultDisplay({
 
   // 计算初始倒计时值
   // 计算倒计时，服务端渲染时不显示秒数
-  const calculateTimeLeft = (includeSeconds = false) => {
-    const now = dayjs();
-    const end = dayjs(activity.deadline);
-    const diff = end.diff(now);
+  const calculateTimeLeft = useCallback(
+    (includeSeconds = false) => {
+      const now = dayjs();
+      const end = dayjs(activity.deadline);
+      const diff = end.diff(now);
 
-    if (diff <= 0) {
-      return "已结束";
-    }
+      if (diff <= 0) {
+        return "已结束";
+      }
 
-    const duration = dayjs.duration(diff);
-    const days = Math.floor(duration.asDays());
-    const hours = duration.hours();
-    const minutes = duration.minutes();
-    const seconds = duration.seconds();
+      const duration = dayjs.duration(diff);
+      const days = Math.floor(duration.asDays());
+      const hours = duration.hours();
+      const minutes = duration.minutes();
+      const seconds = duration.seconds();
 
-    let timeString = "";
-    if (days > 0) timeString += `${days}天`;
-    if (hours > 0) timeString += `${hours}小时`;
-    if (minutes > 0) timeString += `${minutes}分钟`;
-    if (includeSeconds) timeString += `${seconds}秒`;
+      let timeString = "";
+      if (days > 0) timeString += `${days}天`;
+      if (hours > 0) timeString += `${hours}小时`;
+      if (minutes > 0) timeString += `${minutes}分钟`;
+      if (includeSeconds) timeString += `${seconds}秒`;
 
-    return timeString || (includeSeconds ? "1秒" : "不到1分钟");
-  };
+      return timeString || (includeSeconds ? "1秒" : "不到1分钟");
+    },
+    [activity.deadline],
+  );
 
   const [timeLeft, setTimeLeft] = useState(() => calculateTimeLeft(false));
 
@@ -72,7 +75,7 @@ export function ResultDisplay({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [calculateTimeLeft]);
 
   const registrationCount = registrations.length;
   const winnerCount = winners.length;

@@ -17,7 +17,7 @@ const testMiddleware = async (req: NextRequest) => {
   }
 
   if (pathname === "/") {
-    const userUrl = new URL("/user", req.url);
+    const userUrl = new URL("/admin", req.url);
     return NextResponse.redirect(userUrl);
   }
   // 测试环境中，所有请求都当作管理员处理
@@ -40,7 +40,7 @@ const productionMiddleware = clerkMiddleware(async (auth, req) => {
   }
 
   if (pathname === "/") {
-    const userUrl = new URL("/user", req.url);
+    const userUrl = new URL("/admin", req.url);
     return NextResponse.redirect(userUrl);
   }
 

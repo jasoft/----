@@ -113,7 +113,7 @@ export class ActivityService {
         .getList<Activity>(1, 50, {
           sort: "-created",
           expand: "registrations",
-          filter: "isPublished = true",
+          filter: "isPublished=true",
           $autoCancel: false,
         });
       return records.items;

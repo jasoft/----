@@ -1,34 +1,25 @@
-# Build stage
-FROM node:24-slim AS builder
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files first
 COPY package*.json ./
-RUN npm ci
 
-# Copy source code and env files
+# Install ALL dependencies including dev dependencies
+RUN npm config set registry https://registry.npmmirror.com
+RUN npm install
+
+# Copy all files
 COPY . .
 COPY .env.production .env
 
-# Build the application
+# Build
 ENV NODE_ENV=production
+ENV NEXT_BUILD=1
 RUN npm run build
 
-# Runtime stage
-FROM node:24-slim AS runner
+# Copy standalone server files to root
 
-WORKDIR /app
-
-ENV NODE_ENV=production
-
-# Copy necessary files from builder
-COPY --from=builder /app/next.config.js ./
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/pb ./pb
-COPY --from=builder /app/.env ./.env
 
 # Install pocketbase
 RUN wget https://github.com/pocketbase/pocketbase/releases/download/v0.28.1/pocketbase_0.28.1_linux_amd64.zip \
@@ -37,8 +28,9 @@ RUN wget https://github.com/pocketbase/pocketbase/releases/download/v0.28.1/pock
     && chmod +x pocketbase \
     && mv pocketbase pb/pocketbase
 
-# Expose the port
-EXPOSE 3000
+# Expose ports
+EXPOSE 3000 8090
 
-# Start pocketbase and next.js
-CMD cd pb && ./pocketbase serve & cd .. && npm start
+ENV NEXT_BUILD=0
+# Start services
+CMD ["sh", "-c", "cd /app/pb && ./pocketbase serve --http 0.0.0.0:8090 & cd /app  && npm start"]

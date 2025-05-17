@@ -17,6 +17,16 @@ function EmptyState() {
 }
 
 export default async function UserPage() {
+  // 在构建时返回空列表，避免调用 pocketbase
+  if (process.env.NEXT_BUILD === "1") {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="mb-6 text-2xl font-bold">活动列表</h1>
+        <EmptyState />
+      </div>
+    );
+  }
+
   // 数据获取失败会自动被error.tsx处理
   const activities = await activityService.getActivityList();
 
