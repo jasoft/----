@@ -14,7 +14,7 @@ export default async function EditActivityPage({ params }: PageProps) {
     const activity = await activityService.getActivity(id);
 
     return (
-      <div className="container mx-auto max-w-4xl py-8">
+      <div className="container mx-auto max-w-screen-sm px-4 py-8">
         <EditActivityForm activity={activity} />
       </div>
     );

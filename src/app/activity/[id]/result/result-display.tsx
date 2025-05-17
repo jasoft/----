@@ -108,7 +108,7 @@ export function ResultDisplay({
   if (!isPublished) {
     return (
       <div className="flex min-h-screen flex-col bg-gradient-to-b from-blue-50 to-white">
-        <div className="container mx-auto flex-1 space-y-6 px-4 py-6">
+        <div className="container mx-auto max-w-screen-sm flex-1 space-y-6 px-4 py-6">
           <Card className="rounded-lg bg-white p-6 shadow-md">
             <div className="mb-6">
               <h1 className="text-2xl font-bold md:text-3xl">
@@ -126,7 +126,7 @@ export function ResultDisplay({
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-blue-50 to-white">
-      <div className="container mx-auto flex-1 space-y-4 px-4 py-6">
+      <div className="container mx-auto max-w-screen-sm flex-1 space-y-4 px-4 pt-4 pb-24">
         {/* 活动概览区 */}
         <Card className="rounded-lg bg-white p-6 shadow-md">
           <div className="mb-6 flex items-center gap-3">
@@ -148,10 +148,10 @@ export function ResultDisplay({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             <div className="flex items-center gap-2 text-gray-600">
               <ClockIcon className="h-5 w-5" />
-              <span>活动截止时间：{formattedDeadline}</span>
+              <span>截止时间：{formattedDeadline}</span>
             </div>
             <div className="flex items-center gap-2 text-red-600">
               <ClockIcon className="h-5 w-5" />
@@ -165,7 +165,7 @@ export function ResultDisplay({
                   </>
                 ) : (
                   <>
-                    距离结束还有：
+                    距离结束：
                     <span className="ml-1" suppressHydrationWarning>
                       {timeLeft}
                     </span>
@@ -181,7 +181,7 @@ export function ResultDisplay({
               <span className="text-sm">分享链接：</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <code className="w-full rounded bg-gray-100 px-2 py-1 text-sm break-all sm:w-auto sm:flex-1">
+              <code className="flex-1 truncate rounded bg-gray-100 px-2 py-1 text-sm">
                 {mounted
                   ? `${window.location.origin}/s/${activity.id}`
                   : "加载中..."}
@@ -204,46 +204,46 @@ export function ResultDisplay({
           </div>
         </Card>
 
-        {/* 数据统计区 */}
-        <Card className="rounded-lg bg-white p-6 shadow-md">
-          <div className="flex divide-x">
-            <div className="flex-1 px-2 text-center">
-              <div className="text-xs text-gray-500">报名人数</div>
-              <div className="mt-1 text-lg font-bold text-blue-600">
-                {registrationCount}
-              </div>
+        {/* 活动说明折叠区 */}
+        <details className="group">
+          <summary className="flex cursor-pointer items-center justify-center gap-1 text-gray-500 select-none hover:text-gray-700">
+            <span>查看活动详情</span>
+            <svg
+              className="h-5 w-5 rotate-0 transform transition-transform duration-200 ease-in-out group-open:rotate-180"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </summary>
+          <Card className="mt-4 rounded-lg bg-gray-50 p-6 shadow-sm">
+            <h2 className="mb-4 text-xl font-bold">活动描述</h2>
+            <div className="prose max-w-none text-gray-600">
+              <p className="leading-relaxed whitespace-pre-wrap">
+                {activity.content}
+              </p>
             </div>
-            <div className="flex-1 px-2 text-center">
-              <div className="text-xs text-gray-500">人数上限</div>
-              <div className="mt-1 text-lg font-bold">
-                {activity.maxRegistrants}
-              </div>
-            </div>
-            <div className="flex-1 px-2 text-center">
-              <div className="text-xs text-gray-500">待中签人数</div>
-              <div className="mt-1 text-lg font-bold text-green-600">
-                {activity.winnersCount}
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* 信息展示区 */}
-        <Card className="rounded-lg bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-xl font-bold">活动描述</h2>
-          <div className="prose max-w-none text-gray-600">
-            <p className="leading-relaxed whitespace-pre-wrap">
-              {activity.content}
-            </p>
-          </div>
-        </Card>
+          </Card>
+        </details>
 
         {/* 报名者列表区 */}
         {registrationCount > 0 && (
-          <Card className="rounded-lg bg-white p-6 shadow-md">
-            <h2 className="mb-4 text-xl font-bold">
-              {winners.length > 0 ? "中签结果" : "已报名"}
-            </h2>
+          <Card className="rounded-lg bg-neutral-50 p-6 shadow-sm">
+            <div className="mb-4">
+              <h2 className="text-xl font-bold">
+                {winners.length > 0 ? "中签结果" : "已报名"}
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                报名人数：{registrationCount}/{activity.maxRegistrants}
+                ，最终中签：{activity.winnersCount}
+              </p>
+            </div>
             <div className="max-h-[300px] overflow-y-auto">
               {registrations.map((registration) => {
                 const hasWon = winners.some((w) => w.id === registration.id);
@@ -264,7 +264,7 @@ export function ResultDisplay({
                         {hasWon ? "已中签" : "未中签"}
                       </span>
                       <span className="text-sm text-gray-500">
-                        {formatDate(registration.created)}
+                        {dayjs(registration.created).format("MM月DD日 HH:mm")}
                       </span>
                     </div>
                   </div>
@@ -275,18 +275,27 @@ export function ResultDisplay({
         )}
 
         {registrationCount === 0 && (
-          <Card className="rounded-lg bg-white p-2 text-center text-gray-600 shadow-md">
-            暂无报名, 做第一位报名者吧！
+          <Card className="rounded-lg bg-neutral-50 p-6 shadow-sm">
+            <div className="mb-4">
+              <h2 className="text-xl font-bold">已报名</h2>
+              <p className="mt-2 text-sm text-gray-600">
+                报名人数：0/{activity.maxRegistrants}，最终中签：
+                {activity.winnersCount}
+              </p>
+            </div>
+            <div className="text-center text-gray-600">
+              暂无报名, 做第一位报名者吧！
+            </div>
           </Card>
         )}
 
         {isPending && (
           <>
             {dayjs().isBefore(dayjs(activity.deadline)) && (
-              <div className="mt-6 mb-20 text-center">
+              <div className="fixed right-0 bottom-0 left-0 flex h-16 items-center justify-center bg-white/80 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] backdrop-blur-sm">
                 <Link
                   href={`/activity/${activity.id}/register`}
-                  className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+                  className="inline-flex items-center justify-center rounded-md bg-blue-600 px-8 py-3 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
                 >
                   立即报名
                 </Link>

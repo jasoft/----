@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function CreateActivityPage(props: PageProps) {
   const searchParams = await props.searchParams;
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
+    <div className="container mx-auto max-w-screen-sm px-4 py-8">
       <CreateActivityForm error={searchParams.error} />
     </div>
   );
