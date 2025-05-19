@@ -104,7 +104,7 @@ export function ManageActivityList({
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-4">
       {activities.map((activity) => {
         const expired = isExpired(activity.deadline);
         const registrations = activity.expand?.registrations ?? [];
@@ -115,114 +115,115 @@ export function ManageActivityList({
           <div
             key={activity.id}
             data-testid={`activity-${activity.id}`}
-            className={`card shadow-xl ${
-              expired ? "bg-neutral-100" : "bg-base-100"
+            className={`rounded-lg border border-gray-200 bg-white p-4 shadow-sm ${
+              expired ? "bg-gray-50" : ""
             }`}
           >
-            <div className="card-body">
-              <h2 className="card-title mb-2">{activity.title}</h2>
-              <div className="flex flex-wrap gap-2">
-                {hasDrawn && (
-                  <span className="badge badge-success">已抽签</span>
-                )}
-                <span
-                  className={`badge ${
-                    activity.isPublished ? "badge-primary" : "badge-ghost"
-                  }`}
-                >
-                  {activity.isPublished ? "已发布" : "未发布"}
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-sm text-neutral-500">
-                  截止时间: {formatDate(activity.deadline)}
-                </p>
-                <p
-                  className={`text-sm ${
-                    expired ? "text-neutral-500" : "text-primary"
-                  }`}
-                >
-                  {getTimeLeft(activity.deadline)}
-                </p>
-              </div>
-
-              <p className="line-clamp-3 text-sm text-neutral-600">
-                {activity.content}
-              </p>
-
-              <div className="flex items-center gap-4 text-sm text-neutral-500">
-                <span className="flex items-center gap-1">
-                  <span>👥</span>
-                  <span>已报名: {registrationsCount}人</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span>🎯</span>
-                  <span>中签名额: {activity.winnersCount}人</span>
-                </span>
-              </div>
-
-              {registrationsCount > 0 && (
-                <div className="mt-2">
-                  <p className="text-sm font-medium text-neutral-600">
-                    报名者：
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {registrations.map((reg) => (
-                      <span
-                        key={reg.id}
-                        className="badge badge-sm badge-ghost"
-                        title={reg.phone}
-                      >
-                        {reg.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="card-actions mt-4 flex flex-wrap gap-2">
-                <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
-                  <a
-                    href={`/activity/${activity.id}/result`}
-                    className="btn btn-sm btn-info w-full"
-                    data-testid={`view-result-${activity.id}`}
-                  >
-                    查看报名
-                  </a>
-                  <a
-                    href={`/admin/${activity.id}/edit`}
-                    className="btn btn-sm btn-secondary w-full"
-                    data-testid={`edit-activity-${activity.id}`}
-                  >
-                    编辑活动
-                  </a>
-                  <button
-                    onClick={() => void handleTogglePublish(activity)}
-                    data-testid={`toggle-publish-${activity.id}`}
-                    className={`btn btn-sm w-full ${
-                      activity.isPublished ? "btn-warning" : "btn-success"
-                    }`}
-                  >
-                    {activity.isPublished ? "停止发布" : "开始发布"}
-                  </button>
-                  {registrationsCount > 0 && (
-                    <button
-                      onClick={() => void handleDraw(activity)}
-                      className="btn btn-sm btn-primary w-full"
-                      data-testid={`draw-activity-${activity.id}`}
-                    >
-                      {hasDrawn ? "重新抽签" : "执行抽签"}
-                    </button>
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-lg font-medium">{activity.title}</h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {activity.isPublished && (
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                      已发布
+                    </span>
                   )}
-                  <button
-                    onClick={() => void handleDelete(activity)}
-                    className="btn btn-sm btn-error w-full"
-                    data-testid={`delete-activity-${activity.id}`}
-                  >
-                    删除活动
-                  </button>
+                  {hasDrawn && (
+                    <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                      已抽签
+                    </span>
+                  )}
+                  {expired && (
+                    <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                      已结束
+                    </span>
+                  )}
                 </div>
+              </div>
+
+              <div>
+                <div className="mt-1 space-y-1">
+                  <p className="text-sm text-gray-600">
+                    截止时间: {formatDate(activity.deadline)}
+                  </p>
+                  <p
+                    className={`text-sm ${expired ? "text-gray-500" : "text-blue-600"}`}
+                  >
+                    {getTimeLeft(activity.deadline)}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <span className="flex items-center gap-1">
+                    已报名: {registrationsCount}人
+                  </span>
+                  <span className="flex items-center gap-1">
+                    中签: {activity.winnersCount}人
+                  </span>
+                </div>
+
+                {registrationsCount > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-500">报名者:</p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {registrations.map((reg) => (
+                        <span
+                          key={reg.id}
+                          className="inline-block rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600"
+                          title={reg.phone}
+                        >
+                          {reg.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                <a
+                  href={`/activity/${activity.id}/result`}
+                  className="inline-flex items-center justify-center rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-700/20 ring-inset hover:bg-indigo-100"
+                  data-testid={`view-result-${activity.id}`}
+                >
+                  查看报名
+                </a>
+                <a
+                  href={`/admin/${activity.id}/edit`}
+                  className="inline-flex items-center justify-center rounded-md bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 ring-1 ring-purple-700/20 ring-inset hover:bg-purple-100"
+                  data-testid={`edit-activity-${activity.id}`}
+                >
+                  编辑活动
+                </a>
+                <button
+                  onClick={() => void handleTogglePublish(activity)}
+                  data-testid={`toggle-publish-${activity.id}`}
+                  className={`inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-medium ${
+                    activity.isPublished
+                      ? "bg-yellow-50 text-yellow-700 ring-1 ring-yellow-600/20 ring-inset hover:bg-yellow-100"
+                      : "bg-green-50 text-green-700 ring-1 ring-green-600/20 ring-inset hover:bg-green-100"
+                  }`}
+                >
+                  {activity.isPublished ? "停止发布" : "开始发布"}
+                </button>
+                {registrationsCount > 0 && (
+                  <button
+                    onClick={() => void handleDraw(activity)}
+                    data-testid={`draw-activity-${activity.id}`}
+                    className="inline-flex items-center justify-center rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-blue-700/20 ring-inset hover:bg-blue-100"
+                  >
+                    {hasDrawn ? "重新抽签" : "执行抽签"}
+                  </button>
+                )}
+                <button
+                  onClick={() => void handleDelete(activity)}
+                  data-testid={`delete-activity-${activity.id}`}
+                  className="inline-flex items-center justify-center rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 ring-1 ring-red-600/20 ring-inset hover:bg-red-100"
+                >
+                  删除活动
+                </button>
               </div>
             </div>
           </div>
@@ -230,8 +231,8 @@ export function ManageActivityList({
       })}
 
       {activities.length === 0 && (
-        <div className="col-span-full rounded-lg bg-neutral-50 p-8 text-center">
-          <p className="text-neutral-600">暂无活动数据</p>
+        <div className="rounded-lg bg-gray-50 p-6 text-center">
+          <p className="text-sm text-gray-500">暂无活动数据</p>
         </div>
       )}
     </div>

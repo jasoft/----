@@ -108,15 +108,22 @@ export default function AdminPage() {
   const processedActivities = processActivities(activities);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">活动管理</h1>
-          <Link href="/admin/new" className="btn btn-primary">
+    <div className="container mx-auto px-4 py-6">
+      <div className="mb-6">
+        <div className="mb-2">
+          <h1 className="text-2xl font-medium">活动管理</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            管理您的所有活动，查看报名情况和活动状态
+          </p>
+        </div>
+        <div className="mb-4">
+          <Link
+            href="/admin/new"
+            className="inline-flex w-full items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+          >
             创建活动
           </Link>
         </div>
-
         {/* 移动端过滤切换按钮 */}
         <button
           onClick={toggleFilter}
@@ -132,11 +139,11 @@ export default function AdminPage() {
 
         {/* 筛选和排序工具栏 */}
         <div
-          className={`mb-6 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm md:block ${isFilterVisible ? "block" : "hidden"}`}
+          className={`mb-6 rounded border border-gray-200 bg-white p-4 md:block ${isFilterVisible ? "block" : "hidden"}`}
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <div className="flex flex-col">
-              <label className="mb-1 text-sm font-medium text-neutral-500">
+              <label className="mb-1 text-xs font-medium text-gray-500">
                 搜索
               </label>
               <input
@@ -144,33 +151,35 @@ export default function AdminPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="搜索活动标题或内容"
-                className="input input-bordered w-full"
+                className="block w-full rounded border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
             <div className="flex flex-col">
-              <label className="mb-1 text-sm font-medium text-neutral-500">
-                状态
+              <label className="mb-1 text-xs font-medium text-gray-500">
+                状态筛选
               </label>
               <select
                 value={filterStatus}
                 onChange={(e) =>
                   setFilterStatus(e.target.value as FilterStatus)
                 }
-                className="select select-bordered w-full"
+                className="block w-full rounded border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                aria-label="活动状态筛选"
               >
-                <option value="all">全部</option>
+                <option value="all">全部活动</option>
                 <option value="active">进行中</option>
                 <option value="ended">已结束</option>
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="mb-1 text-sm font-medium text-neutral-500">
-                排序字段
+              <label className="mb-1 text-xs font-medium text-gray-500">
+                排序依据
               </label>
               <select
                 value={sortField}
                 onChange={(e) => setSortField(e.target.value as SortField)}
-                className="select select-bordered w-full"
+                className="block w-full rounded border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                aria-label="排序字段选择"
               >
                 <option value="created">创建时间</option>
                 <option value="deadline">截止时间</option>
@@ -179,13 +188,14 @@ export default function AdminPage() {
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="mb-1 text-sm font-medium text-neutral-500">
+              <label className="mb-1 text-xs font-medium text-gray-500">
                 排序方式
               </label>
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-                className="select select-bordered w-full"
+                className="block w-full rounded border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                aria-label="排序方式选择"
               >
                 <option value="desc">降序</option>
                 <option value="asc">升序</option>

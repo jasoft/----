@@ -17,12 +17,6 @@ export function NavLinks() {
   return (
     <div className="flex items-center space-x-2">
       <Link
-        href="/user"
-        className={cn("btn btn-ghost", isActive("/user") && "btn-active")}
-      >
-        活动列表
-      </Link>
-      <Link
         href="/admin"
         className={cn("btn btn-ghost", isActive("/admin") && "btn-active")}
       >

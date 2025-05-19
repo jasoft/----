@@ -15,7 +15,6 @@ COPY .env.production .env
 
 # Build
 ENV NODE_ENV=production
-ENV NEXT_BUILD=1
 RUN npm run build
 
 # Copy standalone server files to root
@@ -31,6 +30,5 @@ RUN wget https://github.com/pocketbase/pocketbase/releases/download/v0.28.1/pock
 # Expose ports
 EXPOSE 3000 8090
 
-ENV NEXT_BUILD=0
 # Start services
 CMD ["sh", "-c", "cd /app/pb && ./pocketbase serve --http 0.0.0.0:8090 & cd /app  && npm start"]
