@@ -37,12 +37,6 @@ test.describe("抽签功能测试", () => {
     await createTestRegistrants(testActivity.id, 10);
   });
 
-  test.afterEach(async ({ authedPage: page, deleteTestActivity }) => {
-    if (testActivity?.id) {
-      await deleteTestActivity(testActivity.id);
-    }
-  });
-
   test.describe("抽签流程", () => {
     test("完整的抽签流程", async ({ authedPage: page, pb }) => {
       // 第一步：添加10个报名者

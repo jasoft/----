@@ -1,5 +1,5 @@
-import { test, expect } from "./fixtures";
-import type { Page } from "@playwright/test";
+import { test, expect, type TestActivity, type TestFixtures } from "./fixtures";
+import type { Page, Route, Request } from "@playwright/test";
 import { fakerZH_CN as faker } from "@faker-js/faker";
 import { createTimestampTitle } from "./utils";
 
@@ -27,24 +27,22 @@ interface ActivityFormData {
 
 // 辅助函数：填写活动表单
 async function fillActivityForm(page: Page, data: ActivityFormData) {
-  console.log("填写活动表单", data);
+  await page.waitForTimeout(1000);
   await page.fill('[data-testid="activity-title"]', data.title);
   await page.fill('[data-testid="activity-content"]', data.content);
-  // 处理发布状态
+
   if (data.isPublished !== undefined) {
     const checkbox = page.locator('[data-testid="activity-is-published"]');
-    // 确保勾选状态与 isPublished 一致
     const isChecked = await checkbox.isChecked();
     if ((isChecked && !data.isPublished) || (!isChecked && data.isPublished)) {
       await checkbox.click();
     }
   }
 
-  // 处理截止时间
   const now = new Date();
   const defaultDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const deadline = data.deadline ?? defaultDeadline;
-  const timezoneOffset = now.getTimezoneOffset() * 60000; // 转换为毫秒
+  const timezoneOffset = now.getTimezoneOffset() * 60000;
   const localDeadline = new Date(deadline.getTime() - timezoneOffset);
   const deadlineString = localDeadline.toISOString().slice(0, 16);
 
@@ -66,11 +64,12 @@ async function fillActivityForm(page: Page, data: ActivityFormData) {
 
 test.describe("活动管理测试", () => {
   test.describe("创建活动", () => {
-    test.beforeEach(async ({ authedPage: page }) => {
+    test.beforeEach(async ({ authedPage: page }: TestFixtures) => {
       await page.goto("/admin/new");
       await expect(page.locator('[data-testid="activity-form"]')).toBeVisible();
     });
-    test("成功创建活动", async ({ authedPage: page, deleteTestActivity }) => {
+
+    test("成功创建活动", async ({ authedPage: page }: TestFixtures) => {
       const activityData = generateActivityData();
       await fillActivityForm(page, {
         title: activityData.title,
@@ -89,29 +88,19 @@ test.describe("活动管理测试", () => {
         .getByRole("link", { name: "查看报名" })
         .getAttribute("href");
       const activityId = viewLink?.split("/").at(-2);
-      // 验证活动显示在列表中
-      // 等待页面加载完成
-      // 验证活动已成功创建并显示在页面中
       await expect(page.locator("main")).toContainText(activityData.title);
-
       await page.getByTestId(`toggle-publish-${activityId}`).click();
       await expect(page.getByTestId("operation-alert")).toContainText("已发布");
-      await deleteTestActivity(activityId!);
-
-      // 清理测试数据
     });
 
-    test("创建活动表单验证", async ({ authedPage: page }) => {
-      // 只填写标题，其他字段留空以触发验证
+    test("创建活动表单验证", async ({ authedPage: page }: TestFixtures) => {
       await fillActivityForm(page, {
         title: "",
-        content: "", // Intentionally left blank
-        winnersCount: "", // Intentionally left blank
-        maxRegistrants: "", // Intentionally left blank
+        content: "",
+        winnersCount: "",
+        maxRegistrants: "",
       });
       await page.click('button[type="submit"]');
-
-      // 验证表单验证错误信息
       await expect(page.locator('[data-testid="error-title"]')).toContainText(
         "活动标题不能为空",
       );
@@ -131,52 +120,38 @@ test.describe("活动管理测试", () => {
     test("成功编辑活动", async ({
       authedPage: page,
       createTestActivity,
-      deleteTestActivity,
-    }) => {
+    }: TestFixtures) => {
       const activity = await createTestActivity({
         title: generateActivityData().title,
       });
       const newActivityTitle = generateActivityData().title;
 
       await page.goto(`/admin/${activity.id}/edit`);
-      await expect(page.locator('[data-testid="activity-form"]')).toBeVisible(); //等待form显示出来
-      // 只更新标题
+      await expect(page.locator('[data-testid="activity-form"]')).toBeVisible();
       await fillActivityForm(page, {
         title: newActivityTitle,
-        // content, deadline, etc., will use existing values or defaults from form
-        // if the form is designed to keep them, otherwise specify them if needed.
-        // For this case, assuming only title is being edited.
-        content: activity.content, // Assuming we want to keep original content
+        content: activity.content,
       });
       await page.click('button[type="submit"]');
-
-      // 验证活动标题已更新
       await expect(page.locator("main")).toContainText(newActivityTitle);
-
-      // 清理测试数据
-      await deleteTestActivity(activity.id);
     });
 
     test("编辑活动表单验证", async ({
       authedPage: page,
       createTestActivity,
-    }) => {
+    }: TestFixtures) => {
       const activity = await createTestActivity({
         title: generateActivityData().title,
       });
       await page.goto(`/admin/${activity.id}/edit`);
-
       await expect(page.locator('[data-testid="activity-form"]')).toBeVisible();
-      // 尝试将标题和其他字段设置为空以触发验证
       await fillActivityForm(page, {
         title: "",
-        content: "", // Intentionally left blank
-        winnersCount: "", // Intentionally left blank
-        maxRegistrants: "", // Intentionally left blank
+        content: "",
+        winnersCount: "",
+        maxRegistrants: "",
       });
       await page.click('button[type="submit"]');
-
-      // 验证表单验证错误信息
       await expect(page.locator('[data-testid="error-title"]')).toContainText(
         "活动标题不能为空",
       );
@@ -193,58 +168,48 @@ test.describe("活动管理测试", () => {
   });
 
   test.describe("删除活动", () => {
-    test("成功删除活动", async ({ authedPage: page, createTestActivity }) => {
+    test("成功删除活动", async ({
+      authedPage: page,
+      createTestActivity,
+    }: TestFixtures) => {
       const activity = await createTestActivity({
         title: generateActivityData().title,
       });
       await page.goto("/admin");
-
-      // 点击删除按钮
       await page.getByTestId(`delete-activity-${activity.id}`).click();
-
-      // 确认删除
       await page.click(".swal2-confirm");
-
-      // 验证活动已删除
       await expect(page.locator("main")).not.toContainText(activity.title);
     });
 
-    test("删除活动失败", async ({ authedPage: page, createTestActivity }) => {
-      // 设置路由拦截
-      await page.route("/admin", async (route) => {
-        const request = route.request();
-        console.log(
-          `拦截请求: ${request.method()} ${request.url()} ${JSON.stringify(await request.allHeaders())}`,
-        );
-        if (
-          request.method() === "POST" &&
-          request.headers()["content-type"]?.includes("multipart")
-        ) {
-          await route.fulfill({
-            status: 500,
-            contentType: "application/json",
-            body: JSON.stringify({ error: "删除失败" }),
-          });
-          return;
-        }
-        await route.continue();
-      });
+    test("删除活动失败", async ({
+      authedPage: page,
+      createTestActivity,
+    }: TestFixtures) => {
+      await page.route(
+        "**/api/collections/activities/**",
+        async (route: Route) => {
+          const request: Request = route.request();
+          if (request.method() === "DELETE") {
+            await route.fulfill({
+              status: 500,
+              contentType: "application/json",
+              body: JSON.stringify({ error: "删除失败" }),
+            });
+            return;
+          }
+          await route.continue();
+        },
+      );
 
       const activity = await createTestActivity({
         title: generateActivityData().title,
       });
       await page.goto("/admin");
-
-      // 点击删除按钮
       await page.getByTestId(`delete-activity-${activity.id}`).click();
-
-      // 确认删除
       await page.click(".swal2-confirm");
-
-      // 验证错误提示
       await expect(page.getByTestId("operation-alert")).toBeVisible();
       await expect(page.getByTestId("operation-alert")).toContainText(
-        /(删除失败|unexpected|error)/,
+        /(失败|unexpected|error)/,
       );
     });
   });
@@ -253,57 +218,101 @@ test.describe("活动管理测试", () => {
     test("成功切换活动状态", async ({
       authedPage: page,
       createTestActivity,
-    }) => {
+    }: TestFixtures) => {
       const activity = await createTestActivity({
         title: generateActivityData().title,
         isPublished: false,
       });
       await page.goto("/admin");
-
-      // 切换活动状态
-      await page.click(`[data-testid="toggle-publish-${activity.id}"]`);
-
-      // 验证活动状态已切换
+      await page.getByTestId(`toggle-publish-${activity.id}`).click();
       await expect(page.getByTestId("operation-alert")).toContainText("已发布");
     });
 
     test("切换活动状态失败", async ({
       authedPage: page,
       createTestActivity,
-    }) => {
-      // 设置路由拦截
-      await page.route("/admin", async (route) => {
-        const request = route.request();
-        console.log(
-          `拦截请求: ${request.method()} ${request.url()} ${JSON.stringify(await request.allHeaders())}`,
-        );
-        if (
-          request.method() === "POST" &&
-          request.headers()["content-type"]?.includes("multipart")
-        ) {
-          await route.fulfill({
-            status: 500,
-            contentType: "application/json",
-            body: JSON.stringify({ error: "删除失败" }),
-          });
-          return;
-        }
-        await route.continue();
-      });
+    }: TestFixtures) => {
+      await page.route(
+        "**/api/collections/activities/**",
+        async (route: Route) => {
+          const request: Request = route.request();
+          if (request.method() === "PATCH" || request.method() === "PUT") {
+            await route.fulfill({
+              status: 500,
+              contentType: "application/json",
+              body: JSON.stringify({ error: "状态切换失败" }),
+            });
+            return;
+          }
+          await route.continue();
+        },
+      );
 
       const activity = await createTestActivity({
         title: generateActivityData().title,
         isPublished: false,
       });
       await page.goto("/admin");
-
-      // 切换活动状态
-      await page.click(`[data-testid="toggle-publish-${activity.id}"]`);
-
-      // 验证错误提示
+      await page.getByTestId(`toggle-publish-${activity.id}`).click();
       await expect(page.getByTestId("operation-alert")).toBeVisible();
       await expect(page.getByTestId("operation-alert")).toContainText(
-        /(删除失败|unexpected|error)/,
+        /(失败|unexpected|error)/,
+      );
+    });
+  });
+
+  test.describe("抽签功能", () => {
+    test("成功进行抽签", async ({
+      authedPage: page,
+      createTestActivity,
+      createTestRegistrants,
+    }: TestFixtures) => {
+      const activity = await createTestActivity({
+        title: generateActivityData().title,
+        isPublished: true,
+      });
+      await createTestRegistrants(activity.id, 5);
+      await page.goto("/admin");
+      await page.getByTestId(`draw-activity-${activity.id}`).click();
+      await page.click(".swal2-confirm");
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "抽签结果已公布" }),
+      ).toContainText("抽签结果已公布");
+    });
+
+    test("抽签失败", async ({
+      authedPage: page,
+      createTestActivity,
+      createTestRegistrants,
+    }: TestFixtures) => {
+      await page.route(
+        "**/api/collections/activities/**",
+        async (route: Route) => {
+          const request: Request = route.request();
+          if (request.method() === "PATCH") {
+            await route.fulfill({
+              status: 500,
+              contentType: "application/json",
+              body: JSON.stringify({ error: "抽签失败" }),
+            });
+            return;
+          }
+          await route.continue();
+        },
+      );
+
+      const activity = await createTestActivity({
+        title: generateActivityData().title,
+        isPublished: true,
+      });
+      await createTestRegistrants(activity.id, 5);
+      await page.goto("/admin");
+      await page.getByTestId(`draw-activity-${activity.id}`).click();
+      await page.click(".swal2-confirm");
+      await expect(page.getByTestId("operation-alert")).toBeVisible();
+      await expect(page.getByTestId("operation-alert")).toContainText(
+        /(失败|unexpected|error)/,
       );
     });
   });

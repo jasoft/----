@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactElement } from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { type Activity } from "~/lib/pb";
 import { ManageActivityList } from "~/components/manage-activity-list";
 import { fetchAdminActivitiesOnServer } from "./actions";
+import { activityService } from "~/services/activity";
 
 type SortField = "created" | "deadline" | "registrations" | "title";
 type SortOrder = "asc" | "desc";
 type FilterStatus = "all" | "active" | "ended";
 
-export default function AdminPage() {
+export default function AdminPage(): ReactElement {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,9 +50,30 @@ export default function AdminPage() {
     }
   };
 
-  // 初始加载
+  // 初始加载和订阅变更
   useEffect(() => {
     void loadActivities();
+
+    // 订阅活动数据变更
+    let unsubscribeFunc: (() => Promise<void>) | undefined;
+
+    const setupSubscription = async () => {
+      try {
+        unsubscribeFunc = await activityService.subscribe(() => {
+          void loadActivities();
+        });
+      } catch (error) {
+        console.error("设置实时订阅失败:", error);
+      }
+    };
+
+    void setupSubscription();
+
+    return () => {
+      if (unsubscribeFunc) {
+        void unsubscribeFunc();
+      }
+    };
   }, []);
 
   // 数据处理函数

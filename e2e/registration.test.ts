@@ -45,12 +45,6 @@ test.describe("报名功能测试", () => {
     });
   });
 
-  test.afterEach(async ({ authedPage, deleteTestActivity }) => {
-    if (testActivity?.id) {
-      await deleteTestActivity(testActivity.id);
-    }
-  });
-
   test.describe("报名表单测试", () => {
     test.beforeEach(async ({ authedPage: page }) => {
       await page.goto(`/activity/${testActivity.id}/register`);

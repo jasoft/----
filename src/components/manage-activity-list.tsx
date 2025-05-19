@@ -1,14 +1,11 @@
 "use client";
 
+import { type ReactElement } from "react";
 import type { Activity } from "~/lib/pb";
 import { Dialog } from "~/components/ui/dialog";
 import { formatDate, isExpired, getTimeLeft } from "~/lib/utils";
 import { useToast } from "~/components/ui/toast";
-import {
-  deleteActivity,
-  togglePublish,
-  drawWinners,
-} from "~/app/actions/activity";
+import { activityService } from "~/services/activity";
 
 interface ManageActivityListProps {
   activities: Activity[];
@@ -18,7 +15,7 @@ interface ManageActivityListProps {
 export function ManageActivityList({
   activities,
   onDeleted,
-}: ManageActivityListProps) {
+}: ManageActivityListProps): ReactElement {
   const { showToast } = useToast();
 
   const handleDelete = async (activity: Activity) => {
@@ -29,10 +26,7 @@ export function ManageActivityList({
 
     if (confirmed) {
       try {
-        const formData = new FormData();
-        formData.append("id", activity.id);
-
-        await deleteActivity(formData);
+        await activityService.deleteActivity(activity.id);
         showToast(`活动"${activity.title}"已删除`, "success");
         onDeleted?.();
       } catch (error) {
@@ -46,11 +40,10 @@ export function ManageActivityList({
 
   const handleTogglePublish = async (activity: Activity) => {
     try {
-      const formData = new FormData();
-      formData.append("id", activity.id);
-      formData.append("isPublished", activity.isPublished.toString());
-
-      await togglePublish(formData);
+      // 更新发布状态
+      await activityService.updateActivity(activity.id, {
+        isPublished: !activity.isPublished,
+      });
       showToast(
         `活动已${activity.isPublished ? "取消发布" : "发布"}`,
         "success",
@@ -88,11 +81,14 @@ export function ManageActivityList({
         }
       }
 
-      const formData = new FormData();
-      formData.append("id", activity.id);
-      formData.append("endNow", (!isExpired(activity.deadline)).toString());
+      // 如果需要提前结束，先更新截止时间
+      if (!isExpired(activity.deadline)) {
+        await activityService.updateActivity(activity.id, {
+          deadline: new Date().toISOString(),
+        });
+      }
 
-      await drawWinners(formData);
+      await activityService.drawWinners(activity.id);
       showToast(hasDrawn ? "已重新抽签" : "抽签完成", "success");
       onDeleted?.();
 

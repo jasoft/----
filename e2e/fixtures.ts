@@ -110,6 +110,9 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
 
   // 创建测试活动的辅助函数
   createTestActivity: async ({ workerPb }, use) => {
+    // 存储当前测试创建的活动 ID
+    let createdActivityId: string | null = null;
+
     const createActivity = async (
       data: Partial<TestActivity> = {},
     ): Promise<TestActivity> => {
@@ -137,6 +140,8 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
           isPublished: record.isPublished,
         };
 
+        // 记录创建的活动 ID
+        createdActivityId = testActivity.id;
         return testActivity;
       } catch (error) {
         console.error("创建测试活动失败:", error);
@@ -145,6 +150,20 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
     };
 
     await use(createActivity);
+
+    // 测试结束后清理创建的活动
+    if (createdActivityId) {
+      try {
+        await activityService.deleteActivity(createdActivityId);
+      } catch (error) {
+        if (!(error instanceof ClientResponseError)) {
+          console.error(
+            "清理测试活动失败 (ID: " + String(createdActivityId) + "):",
+            error,
+          );
+        }
+      }
+    }
   },
 
   createTestRegistrants: async ({ workerPb }, use) => {

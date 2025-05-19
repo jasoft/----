@@ -5,8 +5,63 @@ import {
   getPocketBaseClientInstance,
 } from "~/lib/pb";
 
+type UnsubscribeFunc = () => Promise<void>;
+
 export class ActivityService {
   private pb = getPocketBaseClientInstance();
+  private subscriptions = new Map<string, UnsubscribeFunc>();
+
+  /**
+   * 订阅活动列表变化
+   * @param callback 数据变化时的回调函数
+   */
+  subscribe(callback: () => void): Promise<UnsubscribeFunc> {
+    return new Promise((resolve) => {
+      void this.pb
+        .collection(Collections.ACTIVITIES)
+        .subscribe("*", () => {
+          try {
+            callback();
+          } catch (error) {
+            console.error("订阅回调执行失败:", error);
+          }
+        })
+        .then((unsubscribeFunc) => {
+          const key = Math.random().toString(36).slice(2, 9);
+          this.subscriptions.set(key, unsubscribeFunc);
+
+          resolve(async () => {
+            try {
+              await unsubscribeFunc();
+              this.subscriptions.delete(key);
+            } catch (error) {
+              console.error("取消订阅失败:", error);
+            }
+          });
+        })
+        .catch((error) => {
+          console.error("设置订阅失败:", error);
+          resolve(async () => {
+            console.debug("空订阅的取消操作");
+            return Promise.resolve();
+          });
+        });
+    });
+  }
+
+  /**
+   * 取消所有订阅
+   */
+  unsubscribeAll(): void {
+    this.subscriptions.forEach((unsubscribe) => {
+      try {
+        void unsubscribe();
+      } catch (error) {
+        console.error("取消订阅失败:", error);
+      }
+    });
+    this.subscriptions.clear();
+  }
 
   /**
    * 创建新活动
@@ -147,6 +202,7 @@ export class ActivityService {
       }
     });
   }
+
   /**
    * 创建报名记录
    */
@@ -155,7 +211,7 @@ export class ActivityService {
 
     return executeAuthenticatedOperation(async () => {
       try {
-        console.log(data); // 保留用户添加的日志
+        console.log(data);
         if (!activityId) {
           throw new Error("活动 ID 不能为空，无法创建报名。");
         }
@@ -177,8 +233,6 @@ export class ActivityService {
           if (createError instanceof Error) {
             message += `: ${createError.message}`;
           }
-          // 检查 PocketBase 特定的 ClientResponseError 错误（通常包含 status 属性）
-          // "The requested resource wasn't found." 错误可能在此处发生，如果 activityId 对关联无效。
           if (
             createError &&
             typeof createError === "object" &&
@@ -200,13 +254,12 @@ export class ActivityService {
         try {
           await this.pb
             .collection(Collections.ACTIVITIES)
-            .update(activityId, { "+registrations": newRegistration.id }); // 修正此处的键名
+            .update(activityId, { "+registrations": newRegistration.id });
         } catch (updateError) {
           let message = `更新活动 (ID: ${activityId}) 的报名列表时出错`;
           if (updateError instanceof Error) {
             message += `: ${updateError.message}`;
           }
-          // 如果活动ID在更新时未找到
           if (
             updateError &&
             typeof updateError === "object" &&
@@ -216,8 +269,6 @@ export class ActivityService {
             message = `关联的活动 (ID: ${activityId}) 未找到，无法更新其报名列表。`;
           }
           console.error("Activity update error details:", updateError);
-          // 注意：如果此步骤失败，报名记录已创建但未成功关联回活动。
-          // 可能需要补偿事务（例如删除 newRegistration）。目前仅抛出更清晰的错误。
           throw new Error(
             `创建报名记录失败 (步骤2/2 - 更新活动列表): ${message}`,
           );
@@ -225,23 +276,18 @@ export class ActivityService {
 
         return newRegistration;
       } catch (error) {
-        // 此处捕获来自初始 activityId 检查的错误，或内部 catch 块抛出的已格式化错误。
+        if (
+          error instanceof Error &&
+          (error.message.includes("创建报名记录失败") ||
+            error.message.includes("活动 ID 不能为空"))
+        ) {
+          console.error("Registration processing error:", error.message);
+          throw error;
+        }
+        console.error("Generic error in createRegistration:", error);
         if (error instanceof Error) {
-          // 如果错误消息已表明它来自我们特定的处理程序，则直接重新抛出。
-          if (
-            error.message.includes("创建报名记录失败") ||
-            error.message.includes("活动 ID 不能为空")
-          ) {
-            console.error("Registration processing error:", error.message);
-            throw error;
-          }
-          // 对于在此处捕获的其他类型的错误（例如，内部 try-catch 之前的编程错误）
-          console.error("Generic error in createRegistration:", error);
           throw new Error(`创建报名记录时发生意外错误: ${error.message}`);
         }
-
-        // 处理非 Error 对象的抛出情况
-        console.error("Unknown error object in createRegistration:", error);
         throw new Error("创建报名记录时发生未知类型的错误。");
       }
     });
