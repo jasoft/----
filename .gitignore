@@ -50,3 +50,4 @@ pb/pb_data/
 
 # clerk configuration (can include secrets)
 /.clerk/
+pb/pb_data/
