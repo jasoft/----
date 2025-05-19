@@ -2,9 +2,13 @@
 
 import type { Activity } from "~/lib/pb";
 import { Dialog } from "~/components/ui/dialog";
-import { activityService } from "~/services/activity";
 import { formatDate, isExpired, getTimeLeft } from "~/lib/utils";
 import { useToast } from "~/components/ui/toast";
+import {
+  deleteActivity,
+  togglePublish,
+  drawWinners,
+} from "~/app/actions/activity";
 
 interface ManageActivityListProps {
   activities: Activity[];
@@ -25,7 +29,10 @@ export function ManageActivityList({
 
     if (confirmed) {
       try {
-        await activityService.deleteActivity(activity.id);
+        const formData = new FormData();
+        formData.append("id", activity.id);
+
+        await deleteActivity(formData);
         showToast(`活动"${activity.title}"已删除`, "success");
         onDeleted?.();
       } catch (error) {
@@ -39,10 +46,11 @@ export function ManageActivityList({
 
   const handleTogglePublish = async (activity: Activity) => {
     try {
-      await activityService.updateActivity(activity.id, {
-        isPublished: !activity.isPublished,
-      });
+      const formData = new FormData();
+      formData.append("id", activity.id);
+      formData.append("isPublished", activity.isPublished.toString());
 
+      await togglePublish(formData);
       showToast(
         `活动已${activity.isPublished ? "取消发布" : "发布"}`,
         "success",
@@ -78,15 +86,13 @@ export function ManageActivityList({
         if (!confirmed) {
           return;
         }
-
-        // 更新截止时间为当前时间-1分钟
-        const newDeadline = new Date(Date.now() - 60000).toISOString();
-        await activityService.updateActivity(activity.id, {
-          deadline: newDeadline,
-        });
       }
 
-      await activityService.drawWinners(activity.id);
+      const formData = new FormData();
+      formData.append("id", activity.id);
+      formData.append("endNow", (!isExpired(activity.deadline)).toString());
+
+      await drawWinners(formData);
       showToast(hasDrawn ? "已重新抽签" : "抽签完成", "success");
       onDeleted?.();
 

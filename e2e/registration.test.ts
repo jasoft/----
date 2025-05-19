@@ -61,8 +61,9 @@ test.describe("报名功能测试", () => {
     });
 
     test("成功提交报名表单", async ({ authedPage: page }) => {
+      const submitterName = generateChineseName();
       await fillRegistrationForm(page, {
-        name: generateChineseName(),
+        name: submitterName,
         phone: generateRandomPhoneNumber(),
       });
 
@@ -71,7 +72,9 @@ test.describe("报名功能测试", () => {
       // 验证成功提示
 
       // 验证跳转到结果页面
+
       await expect(page).toHaveURL(`/activity/${testActivity.id}/result`);
+      await expect(page.locator("main")).toContainText(submitterName);
     });
 
     test("表单验证 - 必填字段", async ({ authedPage: page }) => {
@@ -121,6 +124,7 @@ test.describe("报名功能测试", () => {
 
       await page.click('[data-testid="submit-registration"]');
 
+      await expect(page).toHaveURL(`/activity/${testActivity.id}/result`);
       //再创建一次
       await page.goto(`/activity/${testActivity.id}/register`);
       await fillRegistrationForm(page, {

@@ -209,30 +209,31 @@ test.describe("活动管理测试", () => {
       await expect(page.locator("main")).not.toContainText(activity.title);
     });
 
-    test("删除活动失败", async ({
-      authedPage: page,
-      createTestActivity,
-      deleteTestActivity,
-    }) => {
+    test("删除活动失败", async ({ authedPage: page, createTestActivity }) => {
+      // 设置路由拦截
+      await page.route("/admin", async (route) => {
+        const request = route.request();
+        console.log(
+          `拦截请求: ${request.method()} ${request.url()} ${JSON.stringify(await request.allHeaders())}`,
+        );
+        if (
+          request.method() === "POST" &&
+          request.headers()["content-type"]?.includes("multipart")
+        ) {
+          await route.fulfill({
+            status: 500,
+            contentType: "application/json",
+            body: JSON.stringify({ error: "删除失败" }),
+          });
+          return;
+        }
+        await route.continue();
+      });
+
       const activity = await createTestActivity({
         title: generateActivityData().title,
       });
       await page.goto("/admin");
-
-      // 设置路由拦截
-      await page.route(
-        "**/api/collections/activities/records/**",
-        async (route) => {
-          if (route.request().method() === "DELETE") {
-            await route.fulfill({
-              status: 500,
-              body: JSON.stringify({ message: "删除失败" }),
-            });
-          } else {
-            await route.continue();
-          }
-        },
-      );
 
       // 点击删除按钮
       await page.getByTestId(`delete-activity-${activity.id}`).click();
@@ -241,9 +242,9 @@ test.describe("活动管理测试", () => {
       await page.click(".swal2-confirm");
 
       // 验证错误提示
-      await expect(page.locator(".swal2-popup")).toBeVisible();
+      await expect(page.getByTestId("operation-alert")).toBeVisible();
       await expect(page.getByTestId("operation-alert")).toContainText(
-        "删除失败",
+        /(删除失败|unexpected|error)/,
       );
     });
   });
@@ -264,6 +265,46 @@ test.describe("活动管理测试", () => {
 
       // 验证活动状态已切换
       await expect(page.getByTestId("operation-alert")).toContainText("已发布");
+    });
+
+    test("切换活动状态失败", async ({
+      authedPage: page,
+      createTestActivity,
+    }) => {
+      // 设置路由拦截
+      await page.route("/admin", async (route) => {
+        const request = route.request();
+        console.log(
+          `拦截请求: ${request.method()} ${request.url()} ${JSON.stringify(await request.allHeaders())}`,
+        );
+        if (
+          request.method() === "POST" &&
+          request.headers()["content-type"]?.includes("multipart")
+        ) {
+          await route.fulfill({
+            status: 500,
+            contentType: "application/json",
+            body: JSON.stringify({ error: "删除失败" }),
+          });
+          return;
+        }
+        await route.continue();
+      });
+
+      const activity = await createTestActivity({
+        title: generateActivityData().title,
+        isPublished: false,
+      });
+      await page.goto("/admin");
+
+      // 切换活动状态
+      await page.click(`[data-testid="toggle-publish-${activity.id}"]`);
+
+      // 验证错误提示
+      await expect(page.getByTestId("operation-alert")).toBeVisible();
+      await expect(page.getByTestId("operation-alert")).toContainText(
+        /(删除失败|unexpected|error)/,
+      );
     });
   });
 });

@@ -159,3 +159,50 @@ export async function deleteActivity(formData: FormData) {
     throw new Error(error instanceof Error ? error.message : "删除活动失败");
   }
 }
+
+export async function togglePublish(formData: FormData) {
+  try {
+    const id = formData.get("id");
+    const isPublished = formData.get("isPublished") === "true";
+
+    if (!id || typeof id !== "string") {
+      throw new Error("活动ID无效");
+    }
+
+    await activityService.updateActivity(id, {
+      isPublished: !isPublished,
+    });
+
+    revalidatePath("/admin");
+    revalidatePath(`/activity/${id}/result`);
+  } catch (error) {
+    throw new Error(
+      error instanceof Error ? error.message : "更新发布状态失败",
+    );
+  }
+}
+
+export async function drawWinners(formData: FormData) {
+  try {
+    const id = formData.get("id");
+    if (!id || typeof id !== "string") {
+      throw new Error("活动ID无效");
+    }
+
+    const endNow = formData.get("endNow") === "true";
+    if (endNow) {
+      // 更新截止时间为当前时间-1分钟
+      const newDeadline = new Date(Date.now() - 60000).toISOString();
+      await activityService.updateActivity(id, {
+        deadline: newDeadline,
+      });
+    }
+
+    await activityService.drawWinners(id);
+
+    revalidatePath("/admin");
+    revalidatePath(`/activity/${id}/result`);
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : "抽签失败");
+  }
+}
