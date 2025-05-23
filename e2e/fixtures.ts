@@ -12,6 +12,7 @@ import { getPocketBaseClientInstance } from "~/lib/pb";
 
 import { fakerZH_CN as faker } from "@faker-js/faker";
 import { generateRandomPhoneNumber } from "./utils";
+import { ac, T } from "node_modules/@faker-js/faker/dist/airline-BUL6NtOJ";
 
 export interface TestActivity {
   id: string;
@@ -111,7 +112,7 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
   // 创建测试活动的辅助函数
   createTestActivity: async ({ workerPb }, use) => {
     // 存储当前测试创建的活动 ID
-    let createdActivityId: string | null = null;
+    let activity: TestActivity | null = null;
 
     const createActivity = async (
       data: Partial<TestActivity> = {},
@@ -141,7 +142,7 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
         };
 
         // 记录创建的活动 ID
-        createdActivityId = testActivity.id;
+        activity = testActivity;
         return testActivity;
       } catch (error) {
         console.error("创建测试活动失败:", error);
@@ -152,15 +153,13 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
     await use(createActivity);
 
     // 测试结束后清理创建的活动
-    if (createdActivityId) {
+    if (activity) {
+      const act = activity as TestActivity;
       try {
-        await activityService.deleteActivity(createdActivityId);
+        await activityService.deleteActivity(act.id);
       } catch (error) {
         if (!(error instanceof ClientResponseError)) {
-          console.error(
-            "清理测试活动失败 (ID: " + String(createdActivityId) + "):",
-            error,
-          );
+          console.error(`清理测试活动失败 (ID:  ${act.title}  ):`, error);
         }
       }
     }
@@ -183,11 +182,9 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
           .collection("registrations")
           .create(registrant);
         // 更新活动的报名者列表
-        const act = await workerPb.collection("activities").update(activityId, {
+        await workerPb.collection("activities").update(activityId, {
           "+registrations": reg.id,
         });
-        // 可以添加一个短暂的延迟来确保数据库操作完成
-        console.log(act, "活动更新成功");
       }
     };
     await use(createRegistrants);

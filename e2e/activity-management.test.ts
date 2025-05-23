@@ -1,6 +1,6 @@
 import { test, expect, type TestActivity, type TestFixtures } from "./fixtures";
 import type { Page, Route, Request } from "@playwright/test";
-import { fakerZH_CN as faker } from "@faker-js/faker";
+import { de, fakerZH_CN as faker } from "@faker-js/faker";
 import { createTimestampTitle } from "./utils";
 
 // 生成随机活动数据
@@ -69,7 +69,10 @@ test.describe("活动管理测试", () => {
       await expect(page.locator('[data-testid="activity-form"]')).toBeVisible();
     });
 
-    test("成功创建活动", async ({ authedPage: page }: TestFixtures) => {
+    test("成功创建活动", async ({
+      authedPage: page,
+      deleteTestActivity,
+    }: TestFixtures) => {
       const activityData = generateActivityData();
       await fillActivityForm(page, {
         title: activityData.title,
@@ -91,6 +94,7 @@ test.describe("活动管理测试", () => {
       await expect(page.locator("main")).toContainText(activityData.title);
       await page.getByTestId(`toggle-publish-${activityId}`).click();
       await expect(page.getByTestId("operation-alert")).toContainText("已发布");
+      await deleteTestActivity(activityId!);
     });
 
     test("创建活动表单验证", async ({ authedPage: page }: TestFixtures) => {
@@ -179,6 +183,7 @@ test.describe("活动管理测试", () => {
       await page.getByTestId(`delete-activity-${activity.id}`).click();
       await page.click(".swal2-confirm");
       await expect(page.locator("main")).not.toContainText(activity.title);
+      await createTestActivity({ title: "delete me please" }); // 创建一个新的活动让fixture 清理，避免抛出异常。
     });
 
     test("删除活动失败", async ({
