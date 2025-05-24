@@ -7,7 +7,9 @@ import { usePathname } from "next/navigation";
 export function Nav() {
   const pathname = usePathname();
   const isTestMode = env.NEXT_PUBLIC_SKIP_AUTH_IN_TEST === "true";
-  const isActivityPage = pathname?.includes("/activity/");
+  const isActivityPage = pathname
+    ? /.*(activity|sign).*/.test(pathname)
+    : false;
 
   // 测试模式下使用简单导航栏
   if (isTestMode) {

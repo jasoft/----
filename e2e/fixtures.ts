@@ -5,36 +5,20 @@ import {
   type TestType,
 } from "@playwright/test";
 import PocketBase, { ClientResponseError } from "pocketbase";
-import { setupClerkTestingToken } from "@clerk/testing/playwright";
-import { clerk } from "@clerk/testing/playwright";
 import { activityService } from "~/services/activity";
-import { getPocketBaseClientInstance } from "~/lib/pb";
-
+import { getPocketBaseClientInstance, type Activity } from "~/lib/pb";
+import { clerk } from "@clerk/testing/playwright";
 import { fakerZH_CN as faker } from "@faker-js/faker";
 import { generateRandomPhoneNumber } from "./utils";
-import { ac, T } from "node_modules/@faker-js/faker/dist/airline-BUL6NtOJ";
-
-export interface TestActivity {
-  id: string;
-  title: string;
-  content: string;
-  deadline: string;
-  winnersCount: number;
-  maxRegistrants: number;
-  created: string;
-  updated: string;
-  isPublished?: boolean;
-}
 
 // 每个测试用例的固定装置
 export interface TestFixtures {
   page: Page;
   authedPage: Page;
   pb: PocketBase;
-  createTestActivity: (data?: Partial<TestActivity>) => Promise<TestActivity>;
+  createTestActivity: (data?: Partial<Activity>) => Promise<Activity>;
   deleteTestActivity: (id: string) => Promise<void>;
   createTestRegistrants: (activityId: string, count: number) => Promise<void>;
-  login: (page: Page) => Promise<void>;
 }
 
 // Worker 级别的固定装置
@@ -50,6 +34,7 @@ const DEFAULT_TEST_ACTIVITY = {
   winnersCount: 10,
   maxRegistrants: 100,
   isPublished: true,
+  creatorId: "test-creator-id", // 这里可以替换为实际的测试用户 ID
 };
 
 // 测试用户登录信息
@@ -76,31 +61,13 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
     { scope: "worker" },
   ],
 
-  // 登录辅助函数
-  login: async ({}, use) => {
-    const loginHelper = async (page: Page) => {
-      await setupClerkTestingToken({ page });
-      await page.goto("/sign-in");
-      await clerk.signIn({
-        page,
-        signInParams: {
-          strategy: "password",
-          password: TEST_USER_PASSWORD,
-          identifier: TEST_USER_NAME,
-        },
-      });
-    };
-    await use(loginHelper);
-  },
-
   // 基础页面实例（不带登录状态）
   page: async ({ page }, use) => {
     await use(page);
   },
 
-  // 已登录的页面实例
-  authedPage: async ({ page, login }, use) => {
-    //await login(page);
+  // 已登录的页面实例（使用 storageState 自动应用登录状态）
+  authedPage: async ({ page }, use) => {
     await use(page);
   },
 
@@ -112,12 +79,14 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
   // 创建测试活动的辅助函数
   createTestActivity: async ({ workerPb }, use) => {
     // 存储当前测试创建的活动 ID
-    let activity: TestActivity | null = null;
+    let activity: Activity | null = null;
 
     const createActivity = async (
-      data: Partial<TestActivity> = {},
-    ): Promise<TestActivity> => {
+      data: Partial<Activity> = {},
+    ): Promise<Activity> => {
       // 合并默认数据和传入的数据
+      //const user = await currentUser();
+
       const activityData = {
         ...DEFAULT_TEST_ACTIVITY,
         ...data,
@@ -126,24 +95,11 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
       try {
         const record = await workerPb
           .collection("activities")
-          .create<ActivityRecord>(activityData);
-
-        // 转换为 TestActivity 类型
-        const testActivity: TestActivity = {
-          id: record.id,
-          title: record.title,
-          content: record.content,
-          deadline: record.deadline,
-          winnersCount: record.winnersCount,
-          maxRegistrants: record.maxRegistrants,
-          created: record.created,
-          updated: record.updated,
-          isPublished: record.isPublished,
-        };
+          .create<Activity>(activityData);
 
         // 记录创建的活动 ID
-        activity = testActivity;
-        return testActivity;
+        activity = record;
+        return activity;
       } catch (error) {
         console.error("创建测试活动失败:", error);
         throw error;
@@ -154,7 +110,7 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
 
     // 测试结束后清理创建的活动
     if (activity) {
-      const act = activity as TestActivity;
+      const act = activity as Activity;
       try {
         await activityService.deleteActivity(act.id);
       } catch (error) {
@@ -208,19 +164,6 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
 });
 
 /* eslint-enable react-hooks/rules-of-hooks */
-
-// PocketBase 活动记录类型
-interface ActivityRecord {
-  id: string;
-  created: string;
-  updated: string;
-  title: string;
-  content: string;
-  deadline: string;
-  winnersCount: number;
-  maxRegistrants: number;
-  isPublished: boolean;
-}
 
 // 导出类型和工具函数
 export type Test = TestType<TestFixtures, WorkerFixtures>;

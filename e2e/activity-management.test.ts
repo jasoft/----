@@ -1,7 +1,6 @@
-import { test, expect, type TestActivity, type TestFixtures } from "./fixtures";
+import { test, expect, type TestFixtures } from "./fixtures";
 import type { Page, Route, Request } from "@playwright/test";
-import { de, fakerZH_CN as faker } from "@faker-js/faker";
-import { createTimestampTitle } from "./utils";
+import { fakerZH_CN as faker } from "@faker-js/faker";
 
 // 生成随机活动数据
 function generateActivityData() {
@@ -128,6 +127,7 @@ test.describe("活动管理测试", () => {
       const activity = await createTestActivity({
         title: generateActivityData().title,
       });
+      console.log("Created activity:", activity);
       const newActivityTitle = generateActivityData().title;
 
       await page.goto(`/admin/${activity.id}/edit`);
@@ -137,6 +137,7 @@ test.describe("活动管理测试", () => {
         content: activity.content,
       });
       await page.click('button[type="submit"]');
+
       await expect(page.locator("main")).toContainText(newActivityTitle);
     });
 

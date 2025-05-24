@@ -23,14 +23,12 @@ export default defineConfig({
     { name: "setup clerk", testMatch: /global\.setup\.ts/ },
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        // 使用保存的登录状态
+        storageState: "e2e/.auth/state.json",
+      },
       dependencies: ["setup clerk"],
     },
   ],
-  webServer: {
-    command: "npm run start",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 60000, // 增加启动超时时间
-  },
 });

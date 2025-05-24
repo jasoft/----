@@ -183,14 +183,16 @@ export class ActivityService {
   /**
    * 获取完整活动列表 (用于管理后台)
    */
-  async getAdminActivityList() {
+  async getAdminActivityList(userId?: string) {
     return executeAuthenticatedOperation(async () => {
       try {
+        const filter = userId ? `creatorId="${userId}"` : "";
         const records = await this.pb
           .collection(Collections.ACTIVITIES)
           .getList<Activity>(1, 100, {
             sort: "-created",
             expand: "registrations",
+            filter,
             requestKey: null,
           });
         return records.items;

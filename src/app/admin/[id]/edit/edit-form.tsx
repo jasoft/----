@@ -37,6 +37,10 @@ export function EditActivityForm({ activity, error }: EditActivityFormProps) {
     startTransition(async () => {
       try {
         // 调用服务端action
+        console.log(
+          "Submitting form data:",
+          Object.fromEntries(formData.entries()),
+        );
         await updateActivity(activity.id, formData);
         router.push("/admin");
       } catch (error) {
@@ -71,6 +75,7 @@ export function EditActivityForm({ activity, error }: EditActivityFormProps) {
           winnersCount: activity.winnersCount,
           maxRegistrants: activity.maxRegistrants,
           isPublished: activity.isPublished,
+          creatorId: activity.creatorId,
         }}
         onSubmit={handleSubmit}
         isSubmitting={isPending}

@@ -42,6 +42,7 @@ const activitySchema = z
       .min(1, "最大报名人数不能小于1")
       .max(10000, "最大报名人数不能超过10000人"),
     isPublished: z.boolean(),
+    creatorId: z.string().min(1, "创建者ID不能为空"),
   })
   .refine(
     (data) => {
@@ -83,7 +84,10 @@ export async function createActivity(formData: FormData): Promise<Activity> {
       winnersCount: Number(formData.get("winnersCount")),
       maxRegistrants: Number(formData.get("maxRegistrants")),
       isPublished: formData.get("isPublished") === "on",
+      creatorId: formData.get("creatorId") as string,
     };
+
+    console.log("Raw data before validation:", rawData);
 
     // 验证数据
     const validatedData = activitySchema.parse(rawData);
@@ -96,10 +100,7 @@ export async function createActivity(formData: FormData): Promise<Activity> {
 
     return activity;
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new Error(error.errors[0]?.message ?? "表单数据验证失败");
-    }
-    throw new Error(error instanceof Error ? error.message : "创建活动失败");
+    throw error;
   }
 }
 
@@ -124,6 +125,7 @@ export async function updateActivity(
       winnersCount: Number(formData.get("winnersCount")),
       maxRegistrants: Number(formData.get("maxRegistrants")),
       isPublished: formData.get("isPublished") === "on",
+      creatorId: formData.get("creatorId") as string,
     };
 
     // 验证数据
@@ -139,7 +141,7 @@ export async function updateActivity(
     return activity;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new Error(error.errors[0]?.message ?? "表单数据验证失败");
+      throw error;
     }
     throw new Error(error instanceof Error ? error.message : "更新活动失败");
   }

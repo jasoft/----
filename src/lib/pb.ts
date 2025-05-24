@@ -26,6 +26,7 @@ export interface ActivityData {
   winnersCount: number;
   isPublished: boolean;
   maxRegistrants: number;
+  creatorId: string;
 }
 
 export interface Activity extends BaseRecord, ActivityData {

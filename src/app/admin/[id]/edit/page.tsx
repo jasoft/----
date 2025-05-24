@@ -1,6 +1,7 @@
 import { EditActivityForm } from "./edit-form";
 import { activityService } from "~/services/activity";
 import { notFound } from "next/navigation";
+import { currentUser } from "@clerk/nextjs/server";
 
 interface PageProps {
   params: Promise<{

@@ -8,9 +8,13 @@ import { BackButton } from "~/components/ui/back-button";
 
 interface CreateActivityFormProps {
   error?: string | null;
+  creatorId: string;
 }
 
-export function CreateActivityForm({ error }: CreateActivityFormProps) {
+export function CreateActivityForm({
+  error,
+  creatorId,
+}: CreateActivityFormProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -37,6 +41,7 @@ export function CreateActivityForm({ error }: CreateActivityFormProps) {
         onSubmit={handleSubmit}
         isSubmitting={isPending}
         error={error}
+        creatorId={creatorId}
       />
     </>
   );

@@ -53,6 +53,7 @@ const activitySchema = z
         return num <= 10000;
       }, "最大报名人数不能超过10000人"),
     isPublished: z.boolean(),
+    creatorId: z.string().min(1, "创建者ID不能为空"),
   })
   .superRefine((data, ctx) => {
     const maxRegistrants = Number(data.maxRegistrants);
@@ -75,10 +76,12 @@ export type ProcessedActivityData = {
   winnersCount: number;
   maxRegistrants: number;
   isPublished: boolean;
+  creatorId: string;
 };
 
 interface ActivityFormProps {
   id?: string;
+  creatorId?: string; // 创建者ID，可选
   onSubmit: (data: FormData) => Promise<void>;
   defaultValues?: Partial<ProcessedActivityData>;
   isSubmitting?: boolean;
@@ -87,6 +90,7 @@ interface ActivityFormProps {
 
 export function ActivityForm({
   id,
+  creatorId,
   onSubmit,
   defaultValues,
   isSubmitting = false,
@@ -112,6 +116,7 @@ export function ActivityForm({
       winnersCount: defaultValues?.winnersCount?.toString() ?? "",
       maxRegistrants: defaultValues?.maxRegistrants?.toString() ?? "",
       isPublished: defaultValues?.isPublished ?? true,
+      creatorId: defaultValues?.creatorId ?? "", // 如果没有提供创建者ID，则默认为空字符串
     },
   });
 
@@ -144,7 +149,7 @@ export function ActivityForm({
       formData.append("winnersCount", data.winnersCount);
       formData.append("maxRegistrants", data.maxRegistrants);
       formData.append("isPublished", data.isPublished ? "on" : "off");
-
+      formData.append("creatorId", data.creatorId); // 添加创建者ID
       return onSubmit(formData);
     } catch (error) {
       console.error("Form processing error:", error);

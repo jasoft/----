@@ -3,9 +3,12 @@ import { GlobalToast } from "~/components/ui/toast";
 import { Nav } from "~/components/nav";
 import { ClerkProvider } from "@clerk/nextjs";
 import { zhCN } from "@clerk/localizations";
+
 export const metadata = {
-  title: "抽签系统",
-  description: "抽签系统",
+  title: process.env.NEXT_PUBLIC_SITE_NAME ?? "抽签系统",
+  description:
+    process.env.NEXT_PUBLIC_SITE_DESCRIPTION ??
+    "公平、透明、便捷的在线抽签平台",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
@@ -21,7 +24,6 @@ export default function RootLayout({
       <body suppressHydrationWarning className="font-sans">
         <Nav />
         <GlobalToast />
-
         <main className="container mx-auto my-auto">{children}</main>
       </body>
     </html>
