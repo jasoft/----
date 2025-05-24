@@ -116,7 +116,7 @@ export function ActivityForm({
       winnersCount: defaultValues?.winnersCount?.toString() ?? "",
       maxRegistrants: defaultValues?.maxRegistrants?.toString() ?? "",
       isPublished: defaultValues?.isPublished ?? true,
-      creatorId: defaultValues?.creatorId ?? "", // 如果没有提供创建者ID，则默认为空字符串
+      creatorId: defaultValues?.creatorId ?? creatorId, // defaultvalues 是 edit模式时传入的创建者ID，creatorId 是创建新活动时传入的创建者ID
     },
   });
 
@@ -129,32 +129,40 @@ export function ActivityForm({
     .startOf("minute")
     .format("YYYY-MM-DDTHH:mm:00");
 
-  const handleFormSubmit = handleSubmit((data: ActivityFormData) => {
-    try {
-      // 创建FormData对象
-      const formData = new FormData();
+  const handleFormSubmit = handleSubmit(
+    async (data: ActivityFormData) => {
+      try {
+        console.log("提交的活动数据:", data);
+        // 创建FormData对象
+        const formData = new FormData();
 
-      // 如果是编辑模式，添加id
-      if (id) {
-        formData.append("id", id);
+        // 如果是编辑模式，添加id
+        if (id) {
+          formData.append("id", id);
+        }
+
+        // 添加表单数据
+        formData.append("title", data.title);
+        formData.append("content", data.content);
+        formData.append(
+          "deadline",
+          dayjs(data.deadline).format("YYYY-MM-DDTHH:mm:ss"),
+        );
+        formData.append("winnersCount", data.winnersCount);
+        formData.append("maxRegistrants", data.maxRegistrants);
+        formData.append("isPublished", data.isPublished ? "on" : "off");
+        formData.append("creatorId", creatorId ?? data.creatorId); // 添加创建者ID
+        console.log("提交的表单数据:", Object.fromEntries(formData.entries()));
+        await onSubmit(formData);
+      } catch (error) {
+        console.error("Form processing error:", error);
       }
-
-      // 添加表单数据
-      formData.append("title", data.title);
-      formData.append("content", data.content);
-      formData.append(
-        "deadline",
-        dayjs(data.deadline).format("YYYY-MM-DDTHH:mm:ss"),
-      );
-      formData.append("winnersCount", data.winnersCount);
-      formData.append("maxRegistrants", data.maxRegistrants);
-      formData.append("isPublished", data.isPublished ? "on" : "off");
-      formData.append("creatorId", data.creatorId); // 添加创建者ID
-      return onSubmit(formData);
-    } catch (error) {
-      console.error("Form processing error:", error);
-    }
-  });
+    },
+    (errors) => {
+      // 验证失败时执行这个回调
+      console.error("表单验证失败:", errors);
+    },
+  );
 
   return (
     <form

@@ -1,10 +1,12 @@
 "use server";
 
 import { activityService } from "~/services/activity";
-
+import { currentUser } from "@clerk/nextjs/server";
 export async function fetchAdminActivitiesOnServer() {
   try {
-    const items = await activityService.getAdminActivityList();
+    const items = await activityService.getAdminActivityList(
+      (await currentUser())?.id ?? undefined,
+    );
     // 成功时返回数据
     return { success: true, data: items };
   } catch (err) {

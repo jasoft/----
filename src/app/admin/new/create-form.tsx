@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createActivity } from "~/app/actions/activity";
 import { ActivityForm } from "~/components/forms/activity-form";
@@ -12,22 +12,33 @@ interface CreateActivityFormProps {
 }
 
 export function CreateActivityForm({
-  error,
+  error: initialError,
   creatorId,
 }: CreateActivityFormProps) {
   const [isPending, startTransition] = useTransition();
+  const [formError, setFormError] = useState<string | null>(
+    initialError ?? null,
+  );
   const router = useRouter();
 
   const handleSubmit = async (formData: FormData) => {
-    startTransition(async () => {
-      try {
-        await createActivity(formData);
-        router.push("/admin");
-      } catch (error) {
-        console.error("Failed to create activity:", error);
-        throw error;
-      }
-    });
+    setFormError(null);
+    try {
+      startTransition(async () => {
+        try {
+          await createActivity(formData);
+          router.push("/admin");
+        } catch (err) {
+          console.error("Failed to create activity:", err);
+          setFormError(
+            err instanceof Error ? err.message : "创建活动失败，请重试",
+          );
+        }
+      });
+    } catch (err) {
+      console.error("Submission error:", err);
+      setFormError("表单提交失败，请重试");
+    }
   };
 
   return (
@@ -40,7 +51,7 @@ export function CreateActivityForm({
       <ActivityForm
         onSubmit={handleSubmit}
         isSubmitting={isPending}
-        error={error}
+        error={formError}
         creatorId={creatorId}
       />
     </>

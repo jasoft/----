@@ -4,12 +4,27 @@ import {
   type Page,
   type TestType,
 } from "@playwright/test";
-import PocketBase, { ClientResponseError } from "pocketbase";
+import type PocketBase from "pocketbase";
+import { ClientResponseError } from "pocketbase";
 import { activityService } from "~/services/activity";
 import { getPocketBaseClientInstance, type Activity } from "~/lib/pb";
-import { clerk } from "@clerk/testing/playwright";
 import { fakerZH_CN as faker } from "@faker-js/faker";
 import { generateRandomPhoneNumber } from "./utils";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+
+// 读取全局用户 ID
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const userInfoPath = path.join(__dirname, ".auth/user-info.json");
+
+interface UserInfo {
+  userId: string;
+}
+
+const testUserInfo = JSON.parse(
+  fs.readFileSync(userInfoPath, "utf-8"),
+) as UserInfo;
 
 // 每个测试用例的固定装置
 export interface TestFixtures {
@@ -34,7 +49,7 @@ const DEFAULT_TEST_ACTIVITY = {
   winnersCount: 10,
   maxRegistrants: 100,
   isPublished: true,
-  creatorId: "test-creator-id", // 这里可以替换为实际的测试用户 ID
+  creatorId: "", // 将在创建活动时设置
 };
 
 // 测试用户登录信息
@@ -84,12 +99,10 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
     const createActivity = async (
       data: Partial<Activity> = {},
     ): Promise<Activity> => {
-      // 合并默认数据和传入的数据
-      //const user = await currentUser();
-
       const activityData = {
         ...DEFAULT_TEST_ACTIVITY,
         ...data,
+        creatorId: testUserInfo.userId,
       };
 
       try {
