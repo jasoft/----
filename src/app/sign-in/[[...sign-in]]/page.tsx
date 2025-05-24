@@ -136,7 +136,7 @@ export default function Page() {
                   elements: {
                     formButtonPrimary:
                       "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl w-full",
-                    card: " bg-transparent w-full",
+                    card: "bg-transparent w-full",
                     rootBox: "w-full",
                     socialButtonsBlockButton:
                       "border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 w-full",
@@ -145,6 +145,7 @@ export default function Page() {
                     formFieldLabel: "text-gray-700 font-medium text-sm",
                     formFieldInput:
                       "border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg w-full text-sm",
+
                     footer: { display: "none" },
                     formFieldInputShowPasswordButton:
                       "text-gray-500 hover:text-gray-700",
@@ -159,6 +160,18 @@ export default function Page() {
                 }}
               />
             </div>
+          </div>
+          {/* Footer */}
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <p>
+              没有账户？{" "}
+              <Link
+                href="/sign-up"
+                className="font-medium text-blue-600 hover:text-blue-700"
+              >
+                立即注册
+              </Link>
+            </p>
           </div>
         </div>
       </div>

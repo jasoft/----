@@ -139,7 +139,7 @@ export default function Page() {
                 </p>
               </div>
 
-              <div className="overflow-hidden">
+              <div>
                 <SignUp
                   appearance={{
                     elements: {
