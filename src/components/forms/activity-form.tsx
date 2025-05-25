@@ -1,13 +1,17 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import Form from "next/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { cn } from "~/lib/utils";
 import { Input } from "~/components/ui/input";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import {
+  activityFormSchema,
+  type ActivityFormData,
+} from "~/lib/schemas/activity";
 
 // 配置dayjs使用时区
 dayjs.extend(utc);
@@ -16,58 +20,6 @@ dayjs.extend(timezone);
 // 时区相关
 const TIMEZONE = "Asia/Shanghai";
 dayjs.tz.setDefault(TIMEZONE);
-
-// 验证模式
-const activitySchema = z
-  .object({
-    title: z
-      .string()
-      .min(1, "活动标题不能为空")
-      .max(50, "标题不能超过50个字符")
-      .trim(),
-    content: z.string().min(1, "活动描述不能为空").trim(),
-    deadline: z
-      .string()
-      .min(1, "截止时间不能为空")
-      .refine((val) => {
-        const date = dayjs(val).tz(TIMEZONE);
-        const now = dayjs().tz(TIMEZONE);
-        return date.isAfter(now);
-      }, "截止时间必须是未来时间"),
-    winnersCount: z
-      .string()
-      .min(1, "中签人数不能为空")
-      .refine((val) => !isNaN(Number(val)), "中签人数必须是数字")
-      .refine((val) => Number(val) >= 1, "中签人数不能小于1")
-      .refine((val) => Number(val) <= 1000, "中签人数不能超过1000人"),
-    maxRegistrants: z
-      .string()
-      .min(1, "最大报名人数不能为空")
-      .refine((val) => !isNaN(Number(val)), "最大报名人数必须是数字")
-      .refine((val) => {
-        const num = Number(val);
-        return num >= 1;
-      }, "最大报名人数不能小于1")
-      .refine((val) => {
-        const num = Number(val);
-        return num <= 10000;
-      }, "最大报名人数不能超过10000人"),
-    isPublished: z.boolean(),
-    creatorId: z.string().min(1, "创建者ID不能为空"),
-  })
-  .superRefine((data, ctx) => {
-    const maxRegistrants = Number(data.maxRegistrants);
-    const winnersCount = Number(data.winnersCount);
-    if (maxRegistrants < winnersCount) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "最大报名人数必须大于或等于中签人数",
-        path: ["maxRegistrants"],
-      });
-    }
-  });
-
-type ActivityFormData = z.infer<typeof activitySchema>;
 
 export type ProcessedActivityData = {
   title: string;
@@ -102,11 +54,11 @@ export function ActivityForm({
 
   const {
     register,
-    handleSubmit,
+    trigger,
     formState: { errors },
     watch,
   } = useForm<ActivityFormData>({
-    resolver: zodResolver(activitySchema),
+    resolver: zodResolver(activityFormSchema),
     defaultValues: {
       title: defaultValues?.title ?? "",
       content: defaultValues?.content ?? "",
@@ -116,7 +68,7 @@ export function ActivityForm({
       winnersCount: defaultValues?.winnersCount?.toString() ?? "",
       maxRegistrants: defaultValues?.maxRegistrants?.toString() ?? "",
       isPublished: defaultValues?.isPublished ?? true,
-      creatorId: defaultValues?.creatorId ?? creatorId, // defaultvalues 是 edit模式时传入的创建者ID，creatorId 是创建新活动时传入的创建者ID
+      creatorId: defaultValues?.creatorId ?? creatorId,
     },
   });
 
@@ -129,48 +81,35 @@ export function ActivityForm({
     .startOf("minute")
     .format("YYYY-MM-DDTHH:mm:00");
 
-  const handleFormSubmit = handleSubmit(
-    async (data: ActivityFormData) => {
-      try {
-        console.log("提交的活动数据:", data);
-        // 创建FormData对象
-        const formData = new FormData();
-
-        // 如果是编辑模式，添加id
-        if (id) {
-          formData.append("id", id);
-        }
-
-        // 添加表单数据
-        formData.append("title", data.title);
-        formData.append("content", data.content);
-        formData.append(
-          "deadline",
-          dayjs(data.deadline).format("YYYY-MM-DDTHH:mm:ss"),
-        );
-        formData.append("winnersCount", data.winnersCount);
-        formData.append("maxRegistrants", data.maxRegistrants);
-        formData.append("isPublished", data.isPublished ? "on" : "off");
-        formData.append("creatorId", creatorId ?? data.creatorId); // 添加创建者ID
-        console.log("提交的表单数据:", Object.fromEntries(formData.entries()));
-        await onSubmit(formData);
-      } catch (error) {
-        console.error("Form processing error:", error);
+  // ✅ 手动触发校验的处理函数
+  const handleFormAction = async (formData: FormData) => {
+    try {
+      // 手动触发客户端校验
+      const isValid = await trigger();
+      if (!isValid) {
+        return; // 阻止提交
       }
-    },
-    (errors) => {
-      // 验证失败时执行这个回调
-      console.error("表单验证失败:", errors);
-    },
-  );
+
+      // 如果是编辑模式，添加id
+      if (id) {
+        formData.append("id", id);
+      }
+
+      await onSubmit(formData);
+    } catch (error) {
+      console.error("Form processing error:", error);
+    }
+  };
 
   return (
-    <form
+    <Form
       data-testid="activity-form"
-      onSubmit={handleFormSubmit}
+      action={handleFormAction}
       className="space-y-4"
-      noValidate // 禁用浏览器原生验证
     >
+      {/* Hidden fields for data that needs to be submitted */}
+      <input type="hidden" name="creatorId" value={creatorId ?? ""} />
+
       {error && (
         <div className="rounded-md bg-red-50 p-4">
           <p className="text-sm text-red-500" data-testid="form-error">
@@ -329,6 +268,6 @@ export function ActivityForm({
       >
         {isSubmitting ? "提交中..." : "提交"}
       </button>
-    </form>
+    </Form>
   );
 }

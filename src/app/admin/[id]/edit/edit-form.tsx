@@ -67,6 +67,7 @@ export function EditActivityForm({ activity, error }: EditActivityFormProps) {
 
       <ActivityForm
         id={activity.id}
+        creatorId={activity.creatorId}
         error={error}
         defaultValues={{
           title: activity.title,

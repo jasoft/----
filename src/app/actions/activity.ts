@@ -1,12 +1,13 @@
 "use server";
 
 import { z } from "zod";
-import dayjs from "dayjs";
-import timezone from "dayjs/plugin/timezone";
-import utc from "dayjs/plugin/utc";
 import { revalidatePath } from "next/cache";
 import { activityService } from "~/services/activity";
 import type { Activity } from "~/lib/pb";
+import { activityDbSchema, type ActivityDbData } from "~/lib/schemas/activity";
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 
 // 配置dayjs使用时区
 dayjs.extend(utc);
@@ -15,46 +16,6 @@ dayjs.extend(timezone);
 // 时区相关
 const TIMEZONE = "Asia/Shanghai";
 dayjs.tz.setDefault(TIMEZONE);
-
-// 验证模式
-const activitySchema = z
-  .object({
-    title: z
-      .string()
-      .min(1, "活动标题不能为空")
-      .max(50, "标题不能超过50个字符")
-      .trim(),
-    content: z.string().min(1, "活动描述不能为空").trim(),
-    deadline: z
-      .string()
-      .min(1, "截止时间不能为空")
-      .refine((val) => {
-        const date = dayjs(val).tz(TIMEZONE);
-        const now = dayjs().tz(TIMEZONE);
-        return date.isAfter(now);
-      }, "截止时间必须是未来时间"),
-    winnersCount: z
-      .number()
-      .min(1, "中签人数不能小于1")
-      .max(1000, "中签人数不能超过1000人"),
-    maxRegistrants: z
-      .number()
-      .min(1, "最大报名人数不能小于1")
-      .max(10000, "最大报名人数不能超过10000人"),
-    isPublished: z.boolean(),
-    creatorId: z.string().min(1, "创建者ID不能为空"),
-  })
-  .refine(
-    (data) => {
-      return data.maxRegistrants >= data.winnersCount;
-    },
-    {
-      message: "最大报名人数必须大于或等于中签人数",
-      path: ["maxRegistrants"],
-    },
-  );
-
-export type ActivityFormData = z.infer<typeof activitySchema>;
 
 export type ActionResult<T = void> =
   | {
@@ -90,7 +51,7 @@ export async function createActivity(formData: FormData): Promise<Activity> {
     console.log("Raw data before validation:", rawData);
 
     // 验证数据
-    const validatedData = activitySchema.parse(rawData);
+    const validatedData = activityDbSchema.parse(rawData);
 
     // 保存活动到数据库
     const activity = await activityService.createActivity(validatedData);
@@ -129,7 +90,7 @@ export async function updateActivity(
     };
 
     // 验证数据
-    const validatedData = activitySchema.parse(rawData);
+    const validatedData = activityDbSchema.parse(rawData);
 
     // 更新数据库中的活动
     const activity = await activityService.updateActivity(id, validatedData);
