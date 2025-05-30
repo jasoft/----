@@ -14,10 +14,8 @@
     "preview": "next build && next start",
     "start": "next start -H 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "test:setup": "cross-env NODE_ENV=test ts-node -T src/scripts/setup-pocketbase.ts",
     "test:e2e": "cross-env NODE_ENV=test playwright test",
-    "test:alerts": "cross-env NODE_ENV=test playwright test e2e/alerts.test.ts --headed",
-    "test": "npm run test:setup && npm run test:e2e"
+    "test": "npm run test:e2e"
   },
   "dependencies": {
     "@clerk/localizations": "^3.15.2",

@@ -35,7 +35,7 @@ interface ActivityFormProps {
   id?: string;
   creatorId?: string; // 创建者ID，可选
   onSubmit: (data: FormData) => Promise<void>;
-  defaultValues?: Partial<ProcessedActivityData>;
+  initialFormData?: Partial<ProcessedActivityData>;
   isSubmitting?: boolean;
   error?: string | null;
 }
@@ -44,7 +44,7 @@ export function ActivityForm({
   id,
   creatorId,
   onSubmit,
-  defaultValues,
+  initialFormData,
   isSubmitting = false,
   error = null,
 }: ActivityFormProps) {
@@ -60,15 +60,15 @@ export function ActivityForm({
   } = useForm<ActivityFormData>({
     resolver: zodResolver(activityFormSchema),
     defaultValues: {
-      title: defaultValues?.title ?? "",
-      content: defaultValues?.content ?? "",
+      title: initialFormData?.title ?? "",
+      content: initialFormData?.content ?? "",
       deadline:
-        defaultValues?.deadline ??
+        initialFormData?.deadline ??
         defaultDeadline.format("YYYY-MM-DDTHH:mm:ss"),
-      winnersCount: defaultValues?.winnersCount?.toString() ?? "",
-      maxRegistrants: defaultValues?.maxRegistrants?.toString() ?? "",
-      isPublished: defaultValues?.isPublished ?? true,
-      creatorId: defaultValues?.creatorId ?? creatorId,
+      winnersCount: initialFormData?.winnersCount?.toString() ?? "",
+      maxRegistrants: initialFormData?.maxRegistrants?.toString() ?? "",
+      isPublished: initialFormData?.isPublished ?? true,
+      creatorId: initialFormData?.creatorId ?? creatorId,
     },
   });
 
@@ -108,7 +108,7 @@ export function ActivityForm({
       className="space-y-4"
     >
       {/* Hidden fields for data that needs to be submitted */}
-      <input type="hidden" name="creatorId" value={creatorId ?? ""} />
+      <input type="hidden" {...register("creatorId")} />
 
       {error && (
         <div className="rounded-md bg-red-50 p-4">
@@ -264,9 +264,17 @@ export function ActivityForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="btn btn-primary w-full"
+        className={cn("btn btn-primary w-full", isSubmitting && "btn-disabled")}
+        aria-label={isSubmitting ? "正在提交表单" : "提交表单"}
       >
-        {isSubmitting ? "提交中..." : "提交"}
+        {isSubmitting ? (
+          <div className="flex items-center gap-2">
+            <span className="loading loading-spinner loading-sm"></span>
+            <span>提交中...</span>
+          </div>
+        ) : (
+          "提交"
+        )}
       </button>
     </Form>
   );
