@@ -27,37 +27,50 @@ export default async function ResultPage({ params }: Props) {
     const { id } = await params;
     console.log("Loading result page for activity:", id);
 
-    // 获取活动信息
-    const activity = await activityService.getActivity(id);
+    // 获取活动信息，使用let以便重新赋值
+    let activity = await activityService.getActivity(id);
     if (!activity) {
       console.error("Activity not found:", id);
       notFound();
     }
 
-    // 计算活动状态
+    // 检查活动是否已截止
     const now = new Date();
     const deadline = new Date(activity.deadline);
-    const isPending = now < deadline;
-    console.log("Activity", activity);
+    const isExpired = now >= deadline;
 
-    // 从展开的registrations字段获取报名和中签信息
+    // 获取所有报名记录
     const registrations = activity.expand?.registrations ?? [];
-    const winners = isPending
-      ? []
-      : registrations.filter((reg) => reg.isWinner);
+
+    // 如果活动已截止但未抽签，则进行抽签
+    if (isExpired && !registrations.some((reg) => reg.isWinner)) {
+      await activityService.drawWinners(activity.id);
+      // 重新获取活动信息以获取最新抽签结果
+      const updatedActivity = await activityService.getActivity(id);
+      if (!updatedActivity) {
+        console.error("Activity not found after draw:", id);
+        notFound();
+      }
+      activity = updatedActivity;
+    }
+
+    // 获取中签者
+    const winnerRegistrations = (activity.expand?.registrations ?? []).filter(
+      (reg) => reg.isWinner,
+    );
 
     console.log("Page data:", {
       registrationsCount: registrations.length,
-      winnersCount: winners.length,
-      isPending,
+      winnersCount: winnerRegistrations.length,
+      isExpired,
     });
 
     return (
       <ResultDisplay
         activity={activity}
         registrations={registrations}
-        winners={winners}
-        isPending={isPending}
+        winners={winnerRegistrations}
+        isPending={!isExpired} // 保持原有属性名
         isPublished={activity.isPublished}
       />
     );

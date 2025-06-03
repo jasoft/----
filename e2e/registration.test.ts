@@ -143,7 +143,7 @@ test.describe("报名功能测试", () => {
       });
 
       await page.goto(`/activity/${testActivity.id}/register`);
-      await expect(page.locator('text="报名已截止"')).toBeVisible();
+      await expect(page.locator('text="已截止"')).toBeVisible();
     });
   });
 });

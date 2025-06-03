@@ -52,3 +52,4 @@ pb/pb_data/
 /.clerk/
 pb/pb_data/*
 pb/pocketbase.log
+e2e/.auth/state.json

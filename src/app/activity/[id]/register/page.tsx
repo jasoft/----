@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Activity } from "~/lib/pb";
 import type { Metadata } from "next";
 import { activityService } from "~/services/activity";
@@ -62,7 +62,8 @@ export default async function RegisterPage(props: Props) {
 
   // 检查是否已截止
   if (isExpired(activity.deadline)) {
-    return <ExpiredState title={activity.title} />;
+    // 直接重定向到结果页面
+    redirect(`/activity/${activity.id}/result`);
   }
 
   return (

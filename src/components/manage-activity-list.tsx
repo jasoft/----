@@ -92,8 +92,12 @@ export function ManageActivityList({
       showToast(hasDrawn ? "已重新抽签" : "抽签完成", "success");
       onDeleted?.();
 
-      // 跳转到结果页面
-      window.location.href = `/activity/${activity.id}/result`;
+      // 在新窗口打开结果页面
+      window.open(
+        `/activity/${activity.id}/result`,
+        "_blank",
+        "noopener,noreferrer",
+      );
     } catch (error) {
       showToast(error instanceof Error ? error.message : "抽签失败", "error");
     }
@@ -181,6 +185,8 @@ export function ManageActivityList({
               <div className="flex flex-wrap items-center gap-2 pt-2">
                 <a
                   href={`/activity/${activity.id}/result`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center justify-center rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-700/20 ring-inset hover:bg-indigo-100"
                   data-testid={`view-result-${activity.id}`}
                 >

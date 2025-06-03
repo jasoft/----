@@ -71,7 +71,18 @@ export function ResultDisplay({
     setTimeLeft(calculateTimeLeft(true));
 
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft(true));
+      const newTimeLeft = calculateTimeLeft(true);
+      setTimeLeft(newTimeLeft);
+
+      // 如果倒计时结束且没有中签者，则刷新页面触发抽签
+      const hasWinners = registrations.some((reg) => reg.isWinner);
+      if (newTimeLeft === "已结束" && !hasWinners) {
+        clearInterval(timer);
+        // 延迟一秒后刷新，确保用户能看到倒计时结束
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
