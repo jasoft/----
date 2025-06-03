@@ -3,13 +3,13 @@
 name: Fly Deploy
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*" # 匹配所有以 v 开头的标签，如 v1.0.0
 jobs:
   deploy:
     name: Deploy app
     runs-on: ubuntu-latest
-    concurrency: deploy-group    # optional: ensure only one action runs at a time
+    concurrency: deploy-group # optional: ensure only one action runs at a time
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
