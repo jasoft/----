@@ -2,9 +2,9 @@ import { test, expect } from "./fixtures";
 import { clerk } from "@clerk/testing/playwright";
 
 test.skip("管理员认证", () => {
-  test("登录和登出功能测试", async ({ page, login }) => {
-    // 先登录
-    await login(page);
+  test("登录和登出功能测试", async ({ authedPage }) => {
+    // 使用已登录的页面实例
+    const page = authedPage;
 
     // 访问管理员页面
     await page.goto("/admin");

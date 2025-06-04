@@ -281,6 +281,7 @@ test.describe("活动管理测试", () => {
       await page.goto("/admin");
       await page.getByTestId(`draw-activity-${activity.id}`).click();
       await page.click(".swal2-confirm");
+      await page.goto("/activity/" + activity.id + "/result");
       await expect(page.getByRole("dialog")).toBeVisible();
       await expect(
         page.getByRole("heading", { name: "抽签结果已公布" }),

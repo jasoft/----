@@ -44,11 +44,7 @@ const productionMiddleware = clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(userUrl);
   }
 
-  if (userId !== "user_2x4JFHTkMIcPAmaLrHcgJvkvXpP") {
-    // 管理员
-    // Add custom logic to run before redirecting
-    if (isProtectedRoute(req)) await auth.protect();
-  }
+  if (isProtectedRoute(req)) await auth.protect();
 });
 
 console.log("NEXT_PUBLIC_SKIP_AUTH_IN_TEST", env.NEXT_PUBLIC_SKIP_AUTH_IN_TEST);

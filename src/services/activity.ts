@@ -7,9 +7,50 @@ import {
 
 type UnsubscribeFunc = () => Promise<void>;
 
+// 简单的内存缓存
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+}
+
+class SimpleCache {
+  private cache = new Map<string, CacheEntry<any>>();
+
+  set<T>(key: string, data: T, ttl = 30000): void {
+    // 默认30秒缓存
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl,
+    });
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    if (Date.now() - entry.timestamp > entry.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.data;
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  delete(key: string): void {
+    this.cache.delete(key);
+  }
+}
+
 export class ActivityService {
   private pb = getPocketBaseClientInstance();
   private subscriptions = new Map<string, UnsubscribeFunc>();
+  private cache = new SimpleCache();
 
   /**
    * 订阅活动列表变化
@@ -64,6 +105,20 @@ export class ActivityService {
   }
 
   /**
+   * 清除缓存
+   */
+  private clearCache(): void {
+    this.cache.clear();
+  }
+
+  /**
+   * 清除特定的缓存项
+   */
+  private clearCacheKey(key: string): void {
+    this.cache.delete(key);
+  }
+
+  /**
    * 创建新活动
    */
   async createActivity(data: ActivityData) {
@@ -72,6 +127,10 @@ export class ActivityService {
         const record = await this.pb
           .collection(Collections.ACTIVITIES)
           .create<Activity>(data);
+
+        // 清除缓存
+        this.clearCache();
+
         return record;
       } catch (error) {
         if (error instanceof Error) {
@@ -91,6 +150,10 @@ export class ActivityService {
         const record = await this.pb
           .collection(Collections.ACTIVITIES)
           .update<Activity>(id, data);
+
+        // 清除缓存
+        this.clearCache();
+
         return record;
       } catch (error) {
         if (error instanceof Error) {
@@ -129,6 +192,9 @@ export class ActivityService {
 
         // 3. 删除活动本身
         await this.pb.collection(Collections.ACTIVITIES).delete(id);
+
+        // 清除缓存
+        this.clearCache();
       } catch (error) {
         if (error instanceof Error) {
           throw new Error(`删除活动失败: ${error.message}`);
@@ -184,6 +250,14 @@ export class ActivityService {
    * 获取完整活动列表 (用于管理后台)
    */
   async getAdminActivityList(userId?: string) {
+    const cacheKey = `admin_activities_${userId || "all"}`;
+
+    // 尝试从缓存获取
+    const cached = this.cache.get<Activity[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     return executeAuthenticatedOperation(async () => {
       try {
         const filter = userId ? `creatorId="${userId}"` : "";
@@ -194,7 +268,12 @@ export class ActivityService {
             expand: "registrations",
             filter,
             requestKey: null,
+            $autoCancel: false, // 禁用自动取消，提高性能
           });
+
+        // 缓存结果，缓存时间为10秒
+        this.cache.set(cacheKey, records.items, 10000);
+
         return records.items;
       } catch (error) {
         if (error instanceof Error) {

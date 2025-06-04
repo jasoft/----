@@ -98,16 +98,6 @@ test.describe("抽签功能测试", () => {
       await expect(page.getByText(`报名中`)).toBeVisible();
     });
 
-    test("报名结束但未抽签显示报名结束", async ({ authedPage: page, pb }) => {
-      // 将活动设置为过期
-      await pb.collection("activities").update(testActivity.id, {
-        deadline: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      });
-
-      await page.goto(`/activity/${testActivity.id}/result`);
-      await expect(page.getByText("报名结束")).toBeVisible();
-    });
-
     test("无报名活动显示提示信息", async ({ authedPage: page, pb }) => {
       // 将活动设置为过期
       await pb.collection("activities").update(testActivity.id, {

@@ -5,7 +5,6 @@ import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { type Activity } from "~/lib/pb";
 import { ManageActivityList } from "~/components/manage-activity-list";
-import { fetchAdminActivitiesOnServer } from "./actions";
 import { activityService } from "~/services/activity";
 
 type SortField = "created" | "deadline" | "registrations" | "title";
@@ -28,33 +27,48 @@ export default function AdminPage(): ReactElement {
     setIsFilterVisible((prev) => !prev);
   }, []);
 
-  const loadActivities = async () => {
+  const loadActivities = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    try {
-      // 调用 Server Action
-      const result = await fetchAdminActivitiesOnServer();
 
-      if (result.success) {
-        setActivities(result.data ?? []); // 使用 Server Action 返回的数据
-      } else {
-        setError(result.error ?? "未知错误"); // 使用 Server Action 返回的错误
-      }
+    const startTime = performance.now();
+
+    try {
+      // 直接调用 activityService，不使用 Server Action
+      const activities = await activityService.getAdminActivityList();
+      setActivities(activities);
+
+      const endTime = performance.now();
+      console.log(`活动列表加载耗时: ${(endTime - startTime).toFixed(2)}ms`);
     } catch (err) {
-      // 这个catch块主要用于捕获调用Server Action本身可能发生的意外错误
-      // （例如，网络问题导致无法调用Server Action，或者Server Action内部有未捕获的异常）
-      console.error("调用Server Action失败:", err);
-      setError("与服务器通信时发生意外错误，请重试。");
+      console.error("加载活动列表失败:", err);
+      let errorMessage = "加载活动列表失败";
+      if (err instanceof Error) {
+        if (err.message.includes("network")) {
+          errorMessage = "网络连接失败，请检查网络后重试";
+        } else if (err.message.includes("timeout")) {
+          errorMessage = "请求超时，请稍后重试";
+        } else {
+          errorMessage = `加载失败: ${err.message}`;
+        }
+      }
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  // 初始加载和订阅变更
+  // 初始加载
   useEffect(() => {
     void loadActivities();
+  }, []);
 
-    // 订阅活动数据变更
+  // 延迟设置实时订阅，避免影响初始加载性能
+  useEffect(() => {
+    if (activities.length === 0 || isLoading) {
+      return; // 等待数据加载完成
+    }
+
     let unsubscribeFunc: (() => Promise<void>) | undefined;
 
     const setupSubscription = async () => {
@@ -67,14 +81,18 @@ export default function AdminPage(): ReactElement {
       }
     };
 
-    void setupSubscription();
+    // 延迟500ms设置订阅，确保初始渲染完成
+    const timer = setTimeout(() => {
+      void setupSubscription();
+    }, 500);
 
     return () => {
+      clearTimeout(timer);
       if (unsubscribeFunc) {
         void unsubscribeFunc();
       }
     };
-  }, []);
+  }, [activities.length, isLoading]);
 
   // 数据处理函数
   const processActivities = (items: Activity[]) => {
@@ -138,13 +156,27 @@ export default function AdminPage(): ReactElement {
             管理您的所有活动，查看报名情况和活动状态
           </p>
         </div>
-        <div className="mb-4">
+        <div className="mb-4 space-y-2">
           <Link
             href="/admin/new"
             className="inline-flex w-full items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
           >
             创建活动
           </Link>
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              href="/admin/setup-cache"
+              className="inline-flex items-center justify-center rounded-md bg-gray-600 px-3 py-2 text-xs font-medium text-white hover:bg-gray-700"
+            >
+              缓存设置
+            </Link>
+            <Link
+              href="/admin/auth-performance"
+              className="inline-flex items-center justify-center rounded-md bg-purple-600 px-3 py-2 text-xs font-medium text-white hover:bg-purple-700"
+            >
+              性能测试
+            </Link>
+          </div>
         </div>
         {/* 移动端过滤切换按钮 */}
         <button

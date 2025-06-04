@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { CreateActivityForm } from "./create-form";
-import { currentUser } from "@clerk/nextjs/server";
+import { getCachedCurrentUser } from "~/services/auth-cache";
 import { redirect } from "next/navigation";
 
 interface PageProps {
@@ -15,8 +15,23 @@ export const metadata: Metadata = {
 
 export default async function CreateActivityPage(props: PageProps) {
   const searchParams = await props.searchParams;
-  const user = await currentUser();
-  console.log("CreateActivityPage user:", user);
+
+  // 测量getCachedCurrentUser运行时间
+  const requestId = Math.random().toString(36).substring(7);
+  const timestamp = new Date().toISOString();
+  const startTime = performance.now();
+  const user = await getCachedCurrentUser();
+  const endTime = performance.now();
+  console.log(
+    JSON.stringify({
+      event: "getCachedCurrentUser_performance",
+      requestId,
+      timestamp,
+      duration: endTime - startTime,
+      url: "/admin/new",
+    }),
+  );
+
   if (!user) {
     redirect("/sign-in");
   }
