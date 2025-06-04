@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { User, Phone, Send, AlertCircle } from "lucide-react";
 import { Input } from "~/components/ui/input";
 import { SubmitButton } from "~/components/ui/submit-button";
 import { createRegistration } from "~/app/actions/registration";
@@ -35,7 +36,7 @@ interface RegistrationFormProps {
 export function RegistrationForm({ activityId, error }: RegistrationFormProps) {
   const {
     register,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     handleSubmit,
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
@@ -72,65 +73,102 @@ export function RegistrationForm({ activityId, error }: RegistrationFormProps) {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-4"
+      className="space-y-6 rounded-lg border border-gray-100 bg-white p-6 shadow-sm"
       data-testid="registration-form"
     >
       {error && (
         <div
-          className="rounded-md bg-red-50 p-4"
+          className="rounded-md border border-red-200 bg-red-50 p-4"
           data-testid="registration-error"
         >
-          <p className="text-sm text-red-500">{error}</p>
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="h-4 w-4 flex-shrink-0 text-red-500" />
+            <p className="text-sm text-red-500">{error}</p>
+          </div>
         </div>
       )}
 
       <div>
-        <label htmlFor="name" className="mb-2 block text-sm font-medium">
-          姓名
+        <label
+          htmlFor="name"
+          className="mb-2 block text-base font-medium text-gray-700 sm:text-sm"
+        >
+          <div className="flex items-center space-x-2">
+            <span>姓名</span>
+          </div>
         </label>
-        <Input
-          {...register("name")}
-          id="name"
-          name="name"
-          data-testid="registration-name"
-          aria-invalid={!!errors.name}
-          aria-errormessage={errors.name?.message}
-          placeholder="请输入您的姓名 (2-20字符)"
-        />
+        <div className="relative">
+          <Input
+            {...register("name")}
+            id="name"
+            name="name"
+            data-testid="registration-name"
+            aria-invalid={!!errors.name}
+            aria-errormessage={errors.name?.message}
+            placeholder="请输入您的姓名 (2-20字符)"
+            className="pl-10"
+          />
+          <User className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400 sm:h-4 sm:w-4" />
+        </div>
         {errors.name && (
-          <p className="mt-1 text-sm text-red-500" data-testid="name-error">
-            {errors.name.message}
-          </p>
+          <div
+            className="mt-1 flex items-center space-x-1"
+            data-testid="name-error"
+          >
+            <AlertCircle className="h-4 w-4 flex-shrink-0 text-red-500 sm:h-3 sm:w-3" />
+            <p className="text-base text-red-500 sm:text-sm">
+              {errors.name.message}
+            </p>
+          </div>
         )}
       </div>
 
       <div>
-        <label htmlFor="phone" className="mb-2 block text-sm font-medium">
-          手机号码
+        <label
+          htmlFor="phone"
+          className="mb-2 block text-base font-medium text-gray-700 sm:text-sm"
+        >
+          <div className="flex items-center space-x-2">
+            <span>手机号码</span>
+          </div>
         </label>
-        <Input
-          {...register("phone")}
-          id="phone"
-          name="phone"
-          type="tel"
-          data-testid="registration-phone"
-          aria-invalid={!!errors.phone}
-          aria-errormessage={errors.phone?.message}
-          placeholder="请输入您的手机号码"
-        />
+        <div className="relative">
+          <Input
+            {...register("phone")}
+            id="phone"
+            name="phone"
+            type="tel"
+            data-testid="registration-phone"
+            aria-invalid={!!errors.phone}
+            aria-errormessage={errors.phone?.message}
+            placeholder="请输入您的手机号码"
+            className="pl-10"
+          />
+          <Phone className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400 sm:h-4 sm:w-4" />
+        </div>
         {errors.phone && (
-          <p className="mt-1 text-sm text-red-500" data-testid="phone-error">
-            {errors.phone.message}
-          </p>
+          <div
+            className="mt-1 flex items-center space-x-1"
+            data-testid="phone-error"
+          >
+            <AlertCircle className="h-4 w-4 flex-shrink-0 text-red-500 sm:h-3 sm:w-3" />
+            <p className="text-base text-red-500 sm:text-sm">
+              {errors.phone.message}
+            </p>
+          </div>
         )}
       </div>
 
       <SubmitButton
         data-testid="submit-registration"
-        className="w-full"
-        pendingText="提交报名中..."
+        className="mt-6 w-full bg-blue-600 shadow-md transition-all duration-200 hover:bg-blue-700 hover:shadow-lg focus:ring-blue-500"
+        pendingText="⏳ 提交报名中..."
+        pending={isSubmitting}
       >
-        提交报名
+        <div className="flex items-center justify-center space-x-2">
+          <Send className="h-5 w-5 sm:h-4 sm:w-4" />
+          <span>提交报名</span>
+        </div>
       </SubmitButton>
     </form>
   );

@@ -18,6 +18,22 @@ const config = {
   },
   productionBrowserSourceMaps: true,
   // 禁用开发工具
+
+  // 配置 React 选项
+  reactStrictMode: false, // 在生产环境中禁用严格模式
+
+  // 自定义 webpack 配置来处理 hydration 问题
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      // 在生产环境的客户端构建中禁用一些检查
+      config.optimization = {
+        ...config.optimization,
+        // 禁用一些可能导致 hydration 问题的优化
+        sideEffects: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default config;

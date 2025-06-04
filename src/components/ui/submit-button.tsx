@@ -7,15 +7,26 @@ interface SubmitButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   pendingText?: string;
+  pending?: boolean; // 新增：允许外部传入 pending 状态
 }
 
 export function SubmitButton({
   children,
   className,
   pendingText = "提交中...",
+  pending: externalPending,
   ...props
 }: SubmitButtonProps) {
-  const { pending } = useFormStatus();
+  // 尝试使用 useFormStatus，如果失败则使用外部传入的 pending 状态
+  let formStatus;
+  try {
+    formStatus = useFormStatus();
+  } catch {
+    // useFormStatus 在非 form action 上下文中会失败，这是正常的
+    formStatus = { pending: false };
+  }
+
+  const pending = externalPending ?? formStatus.pending;
 
   return (
     <button

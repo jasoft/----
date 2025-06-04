@@ -21,6 +21,14 @@ export default function RootLayout({
 
   const content = (
     <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        {/* 防止浏览器自动插入内容 */}
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="format-detection" content="date=no" />
+        <meta name="format-detection" content="address=no" />
+        <meta name="format-detection" content="email=no" />
+        <meta name="google" content="notranslate" />
+      </head>
       <body suppressHydrationWarning className="font-sans">
         <Nav />
         <GlobalToast />
