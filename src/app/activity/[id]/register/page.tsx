@@ -30,21 +30,6 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   };
 }
 
-function ExpiredState({ title }: { title: string }) {
-  return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-blue-50 to-white">
-      <div className="container mx-auto flex-1 space-y-6 px-4 py-6">
-        <div className="rounded-lg bg-white p-6 shadow-md">
-          <h1 className="mb-6 text-2xl font-bold md:text-3xl">{title}</h1>
-          <div className="rounded-lg bg-red-50 p-4 text-red-800">
-            报名已截止
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 async function getActivity(id: string): Promise<Activity> {
   const activity = await activityService.getActivity(id);
 

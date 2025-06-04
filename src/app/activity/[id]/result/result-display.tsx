@@ -252,30 +252,7 @@ export function ResultDisplay({
 
                     const url = getShortUrl(activity.id);
 
-                    // 检查是否支持现代剪贴板API
-                    if (navigator.clipboard && window.isSecureContext) {
-                      await navigator.clipboard.writeText(url);
-                    } else {
-                      // 降级方案：使用传统的复制方法
-                      const textArea = document.createElement("textarea");
-                      textArea.value = url;
-                      textArea.style.position = "fixed";
-                      textArea.style.left = "-999999px";
-                      textArea.style.top = "-999999px";
-                      document.body.appendChild(textArea);
-                      textArea.focus();
-                      textArea.select();
-
-                      try {
-                        // eslint-disable-next-line @typescript-eslint/no-deprecated
-                        document.execCommand("copy");
-                      } catch (err) {
-                        console.warn("复制失败:", err);
-                        throw new Error("复制失败");
-                      } finally {
-                        document.body.removeChild(textArea);
-                      }
-                    }
+                    await navigator.clipboard.writeText(url);
 
                     await Dialog.success(
                       "复制成功",

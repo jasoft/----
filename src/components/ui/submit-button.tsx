@@ -17,14 +17,8 @@ export function SubmitButton({
   pending: externalPending,
   ...props
 }: SubmitButtonProps) {
-  // 尝试使用 useFormStatus，如果失败则使用外部传入的 pending 状态
-  let formStatus;
-  try {
-    formStatus = useFormStatus();
-  } catch {
-    // useFormStatus 在非 form action 上下文中会失败，这是正常的
-    formStatus = { pending: false };
-  }
+  // 始终调用 useFormStatus，但安全地处理可能的错误状态
+  const formStatus = useFormStatus();
 
   const pending = externalPending ?? formStatus.pending;
 

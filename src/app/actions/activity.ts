@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { activityService } from "~/services/activity";
 import type { Activity } from "~/lib/pb";
-import { activityDbSchema, type ActivityDbData } from "~/lib/schemas/activity";
+import { activityDbSchema } from "~/lib/schemas/activity";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
