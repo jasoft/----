@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { CreateActivityForm } from "./create-form";
-import { getCachedCurrentUser } from "~/services/auth-cache";
+import { getCachedCurrentUser } from "~/services/auth-cache-simple";
 import { redirect } from "next/navigation";
 
 interface PageProps {

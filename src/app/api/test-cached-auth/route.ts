@@ -1,4 +1,4 @@
-import { getCachedCurrentUser } from "~/services/auth-cache";
+import { getCachedCurrentUser } from "~/services/auth-cache-simple";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -6,21 +6,21 @@ export async function GET() {
     const startTime = performance.now();
     const user = await getCachedCurrentUser();
     const endTime = performance.now();
-    
+
     return NextResponse.json({
       success: true,
       user,
       duration: endTime - startTime,
-      method: "cached-auth"
+      method: "cached-auth",
     });
   } catch (error) {
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: error instanceof Error ? error.message : "Unknown error",
-        method: "cached-auth"
+        method: "cached-auth",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

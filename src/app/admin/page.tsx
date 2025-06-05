@@ -156,30 +156,17 @@ export default function AdminPage(): ReactElement {
             管理您的所有活动，查看报名情况和活动状态
           </p>
         </div>
-        <div className="mb-4 space-y-2">
+        <div className="mb-4">
           <Link
             href="/admin/new"
             className="inline-flex w-full items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
           >
             创建活动
           </Link>
-          <div className="grid grid-cols-2 gap-2">
-            <Link
-              href="/admin/setup-cache"
-              className="inline-flex items-center justify-center rounded-md bg-gray-600 px-3 py-2 text-xs font-medium text-white hover:bg-gray-700"
-            >
-              缓存设置
-            </Link>
-            <Link
-              href="/admin/auth-performance"
-              className="inline-flex items-center justify-center rounded-md bg-purple-600 px-3 py-2 text-xs font-medium text-white hover:bg-purple-700"
-            >
-              性能测试
-            </Link>
-          </div>
         </div>
         {/* 移动端过滤切换按钮 */}
         <button
+          type="button"
           onClick={toggleFilter}
           className="mb-4 flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white p-3 text-sm font-medium text-neutral-600 shadow-sm md:hidden"
         >
@@ -271,6 +258,7 @@ export default function AdminPage(): ReactElement {
           </div>
           <div className="flex justify-center">
             <button
+              type="button"
               onClick={() => void loadActivities()}
               className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
             >

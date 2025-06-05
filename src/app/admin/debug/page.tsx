@@ -9,9 +9,7 @@ export default function DebugPage() {
   const [isRunning, setIsRunning] = useState(false);
 
   const addLog = (message: string) => {
-    const timestamp =
-      new Date().toISOString().split("T")[1]?.slice(0, -1) ??
-      new Date().toLocaleTimeString();
+    const timestamp = new Date().toLocaleTimeString();
     setLogs((prev) => [...prev, `[${timestamp}] ${message}`]);
   };
 
@@ -126,34 +124,116 @@ export default function DebugPage() {
     }
   };
 
+  const testAuthCache = async () => {
+    setIsRunning(true);
+    setLogs([]);
+
+    try {
+      addLog("开始测试认证缓存系统");
+
+      // 测试缓存状态
+      addLog("检查缓存表状态...");
+      const cacheStatusStart = performance.now();
+      const cacheResponse = await fetch("/api/setup-user-cache");
+      const cacheStatusEnd = performance.now();
+      const cacheData = await cacheResponse.json();
+      addLog(
+        `缓存状态检查耗时: ${(cacheStatusEnd - cacheStatusStart).toFixed(2)}ms`,
+      );
+      addLog(`缓存状态: ${cacheData.message || "未知"}`);
+
+      // 测试 Clerk Direct
+      addLog("测试 Clerk Direct API...");
+      const clerkStart = performance.now();
+      const clerkResponse = await fetch("/api/test-clerk-direct");
+      const clerkEnd = performance.now();
+      const clerkData = await clerkResponse.json();
+      addLog(`Clerk Direct 耗时: ${(clerkEnd - clerkStart).toFixed(2)}ms`);
+      if (clerkData.success) {
+        addLog(`Clerk API 内部耗时: ${clerkData.duration?.toFixed(2)}ms`);
+      }
+
+      // 测试缓存认证
+      addLog("测试缓存认证系统...");
+      const cachedStart = performance.now();
+      const cachedResponse = await fetch("/api/test-cached-auth");
+      const cachedEnd = performance.now();
+      const cachedData = await cachedResponse.json();
+      addLog(`缓存认证耗时: ${(cachedEnd - cachedStart).toFixed(2)}ms`);
+      if (cachedData.success) {
+        addLog(`缓存系统内部耗时: ${cachedData.duration?.toFixed(2)}ms`);
+      }
+
+      // 性能对比
+      if (clerkData.success && cachedData.success) {
+        const improvement =
+          ((clerkData.duration - cachedData.duration) / clerkData.duration) *
+          100;
+        addLog(`性能提升: ${improvement.toFixed(1)}%`);
+      }
+
+      addLog("认证缓存测试完成");
+    } catch (error) {
+      addLog(`认证缓存测试失败: ${error}`);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">性能调试</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          PocketBase 调试工具
+        </h1>
+        <p className="mt-2 text-gray-600">
+          测试 PocketBase 连接、性能和认证缓存系统
+        </p>
+      </div>
 
-      <div className="mb-6 space-x-4">
+      <div className="mb-6 flex flex-wrap gap-4">
         <button
+          type="button"
           onClick={testDirectPocketBase}
           disabled={isRunning}
-          className="btn btn-primary"
+          className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
         >
           {isRunning ? "测试中..." : "测试 PocketBase SDK"}
         </button>
 
         <button
+          type="button"
           onClick={testNetworkOnly}
           disabled={isRunning}
-          className="btn btn-secondary"
+          className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
         >
           {isRunning ? "测试中..." : "测试原始网络请求"}
         </button>
 
         <button
+          type="button"
+          onClick={testAuthCache}
+          disabled={isRunning}
+          className="rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 disabled:opacity-50"
+        >
+          {isRunning ? "测试中..." : "测试认证缓存"}
+        </button>
+
+        <button
+          type="button"
           onClick={() => setLogs([])}
           disabled={isRunning}
-          className="btn btn-outline"
+          className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700 disabled:opacity-50"
         >
           清除日志
         </button>
+
+        <a
+          href="/admin/dev"
+          className="rounded bg-orange-600 px-4 py-2 text-white hover:bg-orange-700"
+        >
+          返回开发者工具
+        </a>
       </div>
 
       {logs.length > 0 && (

@@ -7,7 +7,6 @@ export enum Collections {
   ACTIVITIES = "activities",
   REGISTRATIONS = "registrations",
   USERS = "users",
-  USER_CACHE = "user_cache",
 }
 
 // PocketBase 基础记录类型
