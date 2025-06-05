@@ -53,3 +53,4 @@ pb/pb_data/
 pb/pb_data/*
 pb/pocketbase.log
 e2e/.auth/state.json
+e2e/.auth/auth-cache.json
