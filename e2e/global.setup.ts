@@ -19,7 +19,6 @@ setup("global setup", async ({ page, context }) => {
 
     // 执行登录
     await page.goto("/sign-in");
-    await page.waitForTimeout(2000);
     await clerk.signIn({
       page,
       signInParams: {
@@ -28,10 +27,6 @@ setup("global setup", async ({ page, context }) => {
         identifier: process.env.TEST_USER_NAME ?? "",
       },
     });
-
-    // 等待页面完全加载
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
 
     // 获取用户 ID
     await clerk.loaded({ page });
@@ -53,9 +48,6 @@ setup("global setup", async ({ page, context }) => {
     if (!userId) {
       throw new Error("未能获取用户ID");
     }
-
-    // 额外等待确保登录状态稳定
-    await page.waitForTimeout(3000);
 
     // 保存用户信息
     fs.writeFileSync(userInfoPath, JSON.stringify({ userId }));

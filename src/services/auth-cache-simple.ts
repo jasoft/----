@@ -25,7 +25,7 @@ export async function getCachedCurrentUser(): Promise<User | null> {
     const startTime = performance.now();
     const user = await currentUser();
     const endTime = performance.now();
-    
+
     console.log(`Clerk API 调用耗时: ${(endTime - startTime).toFixed(2)}ms`);
 
     if (user) {
@@ -62,7 +62,7 @@ function getFromMemoryCache(): User | null {
 function setMemoryCache(user: User): void {
   userCache.set(user.id, {
     user,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 }
 
@@ -90,7 +90,7 @@ export async function refreshUserCache(): Promise<User | null> {
   try {
     // 清除现有缓存
     await clearUserCache();
-    
+
     // 重新获取用户信息
     return await getCachedCurrentUser();
   } catch (error) {
@@ -102,7 +102,7 @@ export async function refreshUserCache(): Promise<User | null> {
 /**
  * 获取缓存统计信息
  */
-export function getCacheStats() {
+export async function getCacheStats() {
   const now = Date.now();
   let validEntries = 0;
   let expiredEntries = 0;
@@ -120,6 +120,6 @@ export function getCacheStats() {
     validEntries,
     expiredEntries,
     cacheDurationMs: MEMORY_CACHE_DURATION,
-    cacheDurationMinutes: MEMORY_CACHE_DURATION / (60 * 1000)
+    cacheDurationMinutes: MEMORY_CACHE_DURATION / (60 * 1000),
   };
 }
