@@ -67,7 +67,7 @@ test.describe("抽签功能测试", () => {
       await page.goto(`/activity/${testActivity.id}/result`);
 
       // 等待6秒，确保倒计时结束并触发抽签
-      await page.waitForTimeout(7000);
+      await page.waitForTimeout(10000);
 
       // 验证抽签结果
       await expect(page.getByText("抽签完成")).toBeVisible();

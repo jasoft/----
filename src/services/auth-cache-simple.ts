@@ -107,7 +107,7 @@ export async function getCacheStats() {
   let validEntries = 0;
   let expiredEntries = 0;
 
-  for (const [clerkId, cached] of userCache.entries()) {
+  for (const [, cached] of userCache.entries()) {
     if (now - cached.timestamp < MEMORY_CACHE_DURATION) {
       validEntries++;
     } else {

@@ -4,6 +4,33 @@ import { useState } from "react";
 import { activityService } from "~/services/activity";
 import { getPocketBaseClientInstance } from "~/lib/pb";
 
+// API 响应类型定义
+interface AuthResponse {
+  token: string;
+  record?: unknown;
+}
+
+interface ListResponse {
+  items?: unknown[];
+  page?: number;
+  perPage?: number;
+  totalItems?: number;
+  totalPages?: number;
+}
+
+interface CacheResponse {
+  success: boolean;
+  message?: string;
+  exists?: boolean;
+}
+
+interface TestResponse {
+  success: boolean;
+  duration?: number;
+  user?: unknown;
+  message?: string;
+}
+
 export default function DebugPage() {
   const [logs, setLogs] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -52,7 +79,7 @@ export default function DebugPage() {
 
       addLog("所有测试完成");
     } catch (error) {
-      addLog(`测试失败: ${error}`);
+      addLog(`测试失败: ${String(error)}`);
     } finally {
       setIsRunning(false);
     }
@@ -94,7 +121,7 @@ export default function DebugPage() {
       );
 
       if (authResponse.ok) {
-        const authData = await authResponse.json();
+        const authData = (await authResponse.json()) as AuthResponse;
         const token = authData.token;
 
         // 测试活动列表请求
@@ -113,12 +140,12 @@ export default function DebugPage() {
         );
 
         if (listResponse.ok) {
-          const listData = await listResponse.json();
-          addLog(`获取到 ${listData.items?.length || 0} 个活动`);
+          const listData = (await listResponse.json()) as ListResponse;
+          addLog(`获取到 ${listData.items?.length ?? 0} 个活动`);
         }
       }
     } catch (error) {
-      addLog(`网络测试失败: ${error}`);
+      addLog(`网络测试失败: ${String(error)}`);
     } finally {
       setIsRunning(false);
     }
@@ -136,21 +163,23 @@ export default function DebugPage() {
       const cacheStatusStart = performance.now();
       const cacheResponse = await fetch("/api/setup-user-cache");
       const cacheStatusEnd = performance.now();
-      const cacheData = await cacheResponse.json();
+      const cacheData = (await cacheResponse.json()) as CacheResponse;
       addLog(
         `缓存状态检查耗时: ${(cacheStatusEnd - cacheStatusStart).toFixed(2)}ms`,
       );
-      addLog(`缓存状态: ${cacheData.message || "未知"}`);
+      addLog(`缓存状态: ${cacheData.message ?? "未知"}`);
 
       // 测试 Clerk Direct
       addLog("测试 Clerk Direct API...");
       const clerkStart = performance.now();
       const clerkResponse = await fetch("/api/test-clerk-direct");
       const clerkEnd = performance.now();
-      const clerkData = await clerkResponse.json();
+      const clerkData = (await clerkResponse.json()) as TestResponse;
       addLog(`Clerk Direct 耗时: ${(clerkEnd - clerkStart).toFixed(2)}ms`);
       if (clerkData.success) {
-        addLog(`Clerk API 内部耗时: ${clerkData.duration?.toFixed(2)}ms`);
+        addLog(
+          `Clerk API 内部耗时: ${clerkData.duration?.toFixed(2) ?? "未知"}ms`,
+        );
       }
 
       // 测试缓存认证
@@ -158,14 +187,21 @@ export default function DebugPage() {
       const cachedStart = performance.now();
       const cachedResponse = await fetch("/api/test-cached-auth");
       const cachedEnd = performance.now();
-      const cachedData = await cachedResponse.json();
+      const cachedData = (await cachedResponse.json()) as TestResponse;
       addLog(`缓存认证耗时: ${(cachedEnd - cachedStart).toFixed(2)}ms`);
       if (cachedData.success) {
-        addLog(`缓存系统内部耗时: ${cachedData.duration?.toFixed(2)}ms`);
+        addLog(
+          `缓存系统内部耗时: ${cachedData.duration?.toFixed(2) ?? "未知"}ms`,
+        );
       }
 
       // 性能对比
-      if (clerkData.success && cachedData.success) {
+      if (
+        clerkData.success &&
+        cachedData.success &&
+        clerkData.duration &&
+        cachedData.duration
+      ) {
         const improvement =
           ((clerkData.duration - cachedData.duration) / clerkData.duration) *
           100;
@@ -174,7 +210,7 @@ export default function DebugPage() {
 
       addLog("认证缓存测试完成");
     } catch (error) {
-      addLog(`认证缓存测试失败: ${error}`);
+      addLog(`认证缓存测试失败: ${String(error)}`);
     } finally {
       setIsRunning(false);
     }

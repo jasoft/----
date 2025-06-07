@@ -12,7 +12,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 10,
   reporter: [["html", { open: "never" }]],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3000/",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     // 增加等待时间
@@ -31,4 +31,9 @@ export default defineConfig({
       dependencies: ["setup clerk"],
     },
   ],
+  webServer: {
+    command: "npm run dev",
+    url: "http://localhost:3000/api/health",
+    reuseExistingServer: !process.env.CI,
+  },
 });

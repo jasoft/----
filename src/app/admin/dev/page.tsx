@@ -3,6 +3,36 @@
 import { useState } from "react";
 import Link from "next/link";
 
+// API 响应类型定义
+interface ConfigResponse {
+  success: boolean;
+  config?: {
+    isFullyConfigured: boolean;
+  };
+  message?: string;
+}
+
+interface CacheResponse {
+  success: boolean;
+  exists?: boolean;
+  message?: string;
+}
+
+interface TestResponse {
+  success: boolean;
+  duration?: number;
+  user?: unknown;
+  message?: string;
+}
+
+interface CollectionResponse {
+  success: boolean;
+  collection?: {
+    fieldsCount: number;
+  };
+  error?: string;
+}
+
 interface DevToolStatus {
   name: string;
   description: string;
@@ -32,46 +62,49 @@ export default function DevToolsPage() {
     try {
       // 检查管理员配置
       const configResponse = await fetch("/api/check-admin-config");
-      const configData = await configResponse.json();
+      const configData = (await configResponse.json()) as ConfigResponse;
 
       const configIndex = newStatuses.findIndex((s) => s.name === "管理员配置");
       if (configIndex !== -1) {
         newStatuses[configIndex] = {
-          ...newStatuses[configIndex],
+          name: newStatuses[configIndex]!.name,
+          description: newStatuses[configIndex]!.description,
           status:
             configData.success && configData.config?.isFullyConfigured
               ? "success"
               : "error",
-          message: configData.message || "配置检查失败",
+          message: configData.message ?? "配置检查失败",
         };
       }
 
       // 检查用户缓存表状态
       const cacheResponse = await fetch("/api/setup-user-cache");
-      const cacheData = await cacheResponse.json();
+      const cacheData = (await cacheResponse.json()) as CacheResponse;
 
       const cacheIndex = newStatuses.findIndex((s) => s.name === "用户缓存表");
       if (cacheIndex !== -1) {
         newStatuses[cacheIndex] = {
-          ...newStatuses[cacheIndex],
+          name: newStatuses[cacheIndex]!.name,
+          description: newStatuses[cacheIndex]!.description,
           status: cacheData.success && cacheData.exists ? "success" : "warning",
           message:
-            cacheData.message ||
+            cacheData.message ??
             (cacheData.exists ? "集合已存在" : "集合不存在"),
         };
       }
 
       // 简单的认证缓存测试
       const authResponse = await fetch("/api/test-cached-auth");
-      const authData = await authResponse.json();
+      const authData = (await authResponse.json()) as TestResponse;
 
       const authIndex = newStatuses.findIndex((s) => s.name === "认证缓存");
       if (authIndex !== -1) {
         newStatuses[authIndex] = {
-          ...newStatuses[authIndex],
+          name: newStatuses[authIndex]!.name,
+          description: newStatuses[authIndex]!.description,
           status: authData.success ? "success" : "error",
           message: authData.success
-            ? `响应时间: ${authData.duration?.toFixed(2)}ms`
+            ? `响应时间: ${authData.duration?.toFixed(2) ?? "未知"}ms`
             : "测试失败",
         };
       }
@@ -82,7 +115,8 @@ export default function DevToolsPage() {
       );
       if (pbIndex !== -1) {
         newStatuses[pbIndex] = {
-          ...newStatuses[pbIndex],
+          name: newStatuses[pbIndex]!.name,
+          description: newStatuses[pbIndex]!.description,
           status: cacheData.success ? "success" : "error",
           message: cacheData.success ? "连接正常" : "连接失败",
         };
@@ -281,55 +315,57 @@ export default function DevToolsPage() {
             </button>
             <button
               type="button"
-              onClick={() =>
-                fetch("/api/fix-cache-permissions", { method: "POST" })
+              onClick={() => {
+                void fetch("/api/fix-cache-permissions", { method: "POST" })
                   .then((r) => r.json())
-                  .then((data) =>
+                  .then((data: CollectionResponse) =>
                     alert(
-                      data.success ? "权限已修复" : `修复失败: ${data.error}`,
+                      data.success
+                        ? "权限已修复"
+                        : `修复失败: ${data.error ?? "未知错误"}`,
                     ),
-                  )
-              }
+                  );
+              }}
               className="block w-full rounded bg-yellow-600 px-4 py-2 text-center text-white hover:bg-yellow-700"
             >
               修复缓存权限
             </button>
             <button
               type="button"
-              onClick={() =>
-                fetch("/api/recreate-user-cache", { method: "POST" })
+              onClick={() => {
+                void fetch("/api/recreate-user-cache", { method: "POST" })
                   .then((r) => r.json())
-                  .then((data) => {
+                  .then((data: CollectionResponse) => {
                     if (data.success) {
                       alert(
-                        `集合重新创建成功！字段数量: ${data.collection.fieldsCount}`,
+                        `集合重新创建成功！字段数量: ${data.collection?.fieldsCount ?? "未知"}`,
                       );
-                      checkAllStatus(); // 重新检查状态
+                      void checkAllStatus(); // 重新检查状态
                     } else {
-                      alert(`重新创建失败: ${data.error}`);
+                      alert(`重新创建失败: ${data.error ?? "未知错误"}`);
                     }
-                  })
-              }
+                  });
+              }}
               className="block w-full rounded bg-orange-600 px-4 py-2 text-center text-white hover:bg-orange-700"
             >
               重新创建集合
             </button>
             <button
               type="button"
-              onClick={() =>
-                fetch("/api/add-cache-fields", { method: "POST" })
+              onClick={() => {
+                void fetch("/api/add-cache-fields", { method: "POST" })
                   .then((r) => r.json())
-                  .then((data) => {
+                  .then((data: CollectionResponse) => {
                     if (data.success) {
                       alert(
-                        `字段添加成功！字段数量: ${data.collection.fieldsCount}`,
+                        `字段添加成功！字段数量: ${data.collection?.fieldsCount ?? "未知"}`,
                       );
-                      checkAllStatus(); // 重新检查状态
+                      void checkAllStatus(); // 重新检查状态
                     } else {
-                      alert(`添加字段失败: ${data.error}`);
+                      alert(`添加字段失败: ${data.error ?? "未知错误"}`);
                     }
-                  })
-              }
+                  });
+              }}
               className="block w-full rounded bg-green-600 px-4 py-2 text-center text-white hover:bg-green-700"
             >
               添加缺失字段

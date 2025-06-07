@@ -27,7 +27,7 @@ const testMiddleware = async (req: NextRequest) => {
 // 生产环境中间件
 const productionMiddleware = clerkMiddleware(async (auth, req) => {
   const isProtectedRoute = createRouteMatcher(["/admin(.*)", "/user(.*)"]);
-  const { userId } = await auth();
+  await auth(); // 确保用户已认证
   const { pathname } = req.nextUrl;
 
   // 处理短链接重定向

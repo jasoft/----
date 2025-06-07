@@ -3,6 +3,22 @@
 import { useState } from "react";
 import Link from "next/link";
 
+// API 响应类型定义
+interface CacheStatsResponse {
+  success: boolean;
+  stats?: {
+    validEntries: number;
+    cacheDurationMinutes: number;
+  };
+}
+
+interface TestResponse {
+  success: boolean;
+  duration?: number;
+  user?: unknown;
+  message?: string;
+}
+
 interface DevToolStatus {
   name: string;
   description: string;
@@ -32,30 +48,33 @@ export default function DevToolsSimplePage() {
     try {
       // 检查内存缓存状态
       const cacheStatsResponse = await fetch("/api/cache-stats");
-      const cacheStatsData = await cacheStatsResponse.json();
+      const cacheStatsData =
+        (await cacheStatsResponse.json()) as CacheStatsResponse;
 
       const cacheIndex = newStatuses.findIndex((s) => s.name === "内存缓存");
       if (cacheIndex !== -1) {
         newStatuses[cacheIndex] = {
-          ...newStatuses[cacheIndex],
+          name: newStatuses[cacheIndex]!.name,
+          description: newStatuses[cacheIndex]!.description,
           status: cacheStatsData.success ? "success" : "error",
           message: cacheStatsData.success
-            ? `${cacheStatsData.stats.validEntries} 个有效条目，${cacheStatsData.stats.cacheDurationMinutes} 分钟缓存`
+            ? `${cacheStatsData.stats?.validEntries ?? 0} 个有效条目，${cacheStatsData.stats?.cacheDurationMinutes ?? 0} 分钟缓存`
             : "缓存状态检查失败",
         };
       }
 
       // 简单的认证缓存测试
       const authResponse = await fetch("/api/test-cached-auth");
-      const authData = await authResponse.json();
+      const authData = (await authResponse.json()) as TestResponse;
 
       const authIndex = newStatuses.findIndex((s) => s.name === "认证缓存");
       if (authIndex !== -1) {
         newStatuses[authIndex] = {
-          ...newStatuses[authIndex],
+          name: newStatuses[authIndex]!.name,
+          description: newStatuses[authIndex]!.description,
           status: authData.success ? "success" : "error",
           message: authData.success
-            ? `响应时间: ${authData.duration?.toFixed(2)}ms`
+            ? `响应时间: ${authData.duration?.toFixed(2) ?? "未知"}ms`
             : "测试失败",
         };
       }
@@ -69,19 +88,27 @@ export default function DevToolsSimplePage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "success": return "text-green-600 bg-green-100";
-      case "error": return "text-red-600 bg-red-100";
-      case "warning": return "text-yellow-600 bg-yellow-100";
-      default: return "text-gray-600 bg-gray-100";
+      case "success":
+        return "text-green-600 bg-green-100";
+      case "error":
+        return "text-red-600 bg-red-100";
+      case "warning":
+        return "text-yellow-600 bg-yellow-100";
+      default:
+        return "text-gray-600 bg-gray-100";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "success": return "✓";
-      case "error": return "✗";
-      case "warning": return "⚠";
-      default: return "?";
+      case "success":
+        return "✓";
+      case "error":
+        return "✗";
+      case "warning":
+        return "⚠";
+      default:
+        return "?";
     }
   };
 
@@ -89,9 +116,7 @@ export default function DevToolsSimplePage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">开发者工具</h1>
-        <p className="mt-2 text-gray-600">
-          简化的认证缓存测试和管理工具
-        </p>
+        <p className="mt-2 text-gray-600">简化的认证缓存测试和管理工具</p>
       </div>
 
       {/* 系统状态概览 */}
@@ -113,10 +138,17 @@ export default function DevToolsSimplePage() {
             <div key={index} className="rounded-lg border border-gray-200 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="font-medium">{tool.name}</h3>
-                <span className={`rounded px-2 py-1 text-xs font-medium ${getStatusColor(tool.status)}`}>
-                  {getStatusIcon(tool.status)} {tool.status === "unknown" ? "未知" : 
-                    tool.status === "success" ? "正常" : 
-                    tool.status === "error" ? "错误" : "警告"}
+                <span
+                  className={`rounded px-2 py-1 text-xs font-medium ${getStatusColor(tool.status)}`}
+                >
+                  {getStatusIcon(tool.status)}{" "}
+                  {tool.status === "unknown"
+                    ? "未知"
+                    : tool.status === "success"
+                      ? "正常"
+                      : tool.status === "error"
+                        ? "错误"
+                        : "警告"}
                 </span>
               </div>
               <p className="text-sm text-gray-600">{tool.description}</p>
@@ -133,9 +165,7 @@ export default function DevToolsSimplePage() {
         {/* 性能测试 */}
         <div className="rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="mb-3 text-lg font-semibold">性能测试</h3>
-          <p className="mb-4 text-sm text-gray-600">
-            测试和分析认证缓存性能
-          </p>
+          <p className="mb-4 text-sm text-gray-600">测试和分析认证缓存性能</p>
           <div className="space-y-2">
             <Link
               href="/admin/auth-performance"
@@ -155,20 +185,26 @@ export default function DevToolsSimplePage() {
         {/* API 测试 */}
         <div className="rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="mb-3 text-lg font-semibold">API 测试</h3>
-          <p className="mb-4 text-sm text-gray-600">
-            测试各种 API 端点
-          </p>
+          <p className="mb-4 text-sm text-gray-600">测试各种 API 端点</p>
           <div className="space-y-2">
             <button
               type="button"
-              onClick={() => fetch("/api/test-clerk-direct").then(r => r.json()).then(console.log)}
+              onClick={() =>
+                fetch("/api/test-clerk-direct")
+                  .then((r) => r.json())
+                  .then(console.log)
+              }
               className="block w-full rounded bg-blue-500 px-4 py-2 text-center text-white hover:bg-blue-600"
             >
               测试 Clerk Direct
             </button>
             <button
               type="button"
-              onClick={() => fetch("/api/test-cached-auth").then(r => r.json()).then(console.log)}
+              onClick={() =>
+                fetch("/api/test-cached-auth")
+                  .then((r) => r.json())
+                  .then(console.log)
+              }
               className="block w-full rounded bg-green-500 px-4 py-2 text-center text-white hover:bg-green-600"
             >
               测试缓存认证
@@ -179,20 +215,30 @@ export default function DevToolsSimplePage() {
         {/* 缓存操作 */}
         <div className="rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="mb-3 text-lg font-semibold">缓存操作</h3>
-          <p className="mb-4 text-sm text-gray-600">
-            管理内存缓存数据
-          </p>
+          <p className="mb-4 text-sm text-gray-600">管理内存缓存数据</p>
           <div className="space-y-2">
             <button
               type="button"
-              onClick={() => fetch("/api/clear-auth-cache", { method: "POST" }).then(() => alert("缓存已清除"))}
+              onClick={() =>
+                fetch("/api/clear-auth-cache", { method: "POST" }).then(() =>
+                  alert("缓存已清除"),
+                )
+              }
               className="block w-full rounded bg-red-600 px-4 py-2 text-center text-white hover:bg-red-700"
             >
               清除内存缓存
             </button>
             <button
               type="button"
-              onClick={() => fetch("/api/cache-stats").then(r => r.json()).then(data => alert(`缓存统计: ${data.stats.validEntries} 个有效条目`))}
+              onClick={() => {
+                void fetch("/api/cache-stats")
+                  .then((r) => r.json())
+                  .then((data: CacheStatsResponse) =>
+                    alert(
+                      `缓存统计: ${data.stats?.validEntries ?? 0} 个有效条目`,
+                    ),
+                  );
+              }}
               className="block w-full rounded bg-gray-500 px-4 py-2 text-center text-white hover:bg-gray-600"
             >
               查看缓存统计
@@ -204,12 +250,20 @@ export default function DevToolsSimplePage() {
       {/* 说明 */}
       <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-6">
         <h2 className="mb-4 text-lg font-semibold">系统说明</h2>
-        
+
         <div className="space-y-2 text-sm text-gray-700">
-          <p>• <strong>内存缓存</strong>: 5分钟有效期，显著提升重复访问性能</p>
-          <p>• <strong>自动回退</strong>: 缓存失败时自动使用 Clerk API</p>
-          <p>• <strong>性能提升</strong>: 缓存命中时响应时间从几百毫秒降至几毫秒</p>
-          <p>• <strong>安全可靠</strong>: 无数据库依赖，简单稳定</p>
+          <p>
+            • <strong>内存缓存</strong>: 5分钟有效期，显著提升重复访问性能
+          </p>
+          <p>
+            • <strong>自动回退</strong>: 缓存失败时自动使用 Clerk API
+          </p>
+          <p>
+            • <strong>性能提升</strong>: 缓存命中时响应时间从几百毫秒降至几毫秒
+          </p>
+          <p>
+            • <strong>安全可靠</strong>: 无数据库依赖，简单稳定
+          </p>
         </div>
       </div>
 

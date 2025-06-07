@@ -61,7 +61,7 @@ export default function AdminPage(): ReactElement {
   // 初始加载
   useEffect(() => {
     void loadActivities();
-  }, []);
+  }, [loadActivities]);
 
   // 延迟设置实时订阅，避免影响初始加载性能
   useEffect(() => {
@@ -92,7 +92,7 @@ export default function AdminPage(): ReactElement {
         void unsubscribeFunc();
       }
     };
-  }, [activities.length, isLoading]);
+  }, [activities.length, isLoading, loadActivities]);
 
   // 数据处理函数
   const processActivities = (items: Activity[]) => {

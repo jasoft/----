@@ -15,7 +15,7 @@ interface CacheEntry<T> {
 }
 
 class SimpleCache {
-  private cache = new Map<string, CacheEntry<any>>();
+  private cache = new Map<string, CacheEntry<unknown>>();
 
   set<T>(key: string, data: T, ttl = 30000): void {
     // 默认30秒缓存
@@ -35,7 +35,7 @@ class SimpleCache {
       return null;
     }
 
-    return entry.data;
+    return entry.data as T;
   }
 
   clear(): void {
@@ -250,7 +250,7 @@ export class ActivityService {
    * 获取完整活动列表 (用于管理后台)
    */
   async getAdminActivityList(userId?: string) {
-    const cacheKey = `admin_activities_${userId || "all"}`;
+    const cacheKey = `admin_activities_${userId ?? "all"}`;
 
     // 尝试从缓存获取
     const cached = this.cache.get<Activity[]>(cacheKey);
