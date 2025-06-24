@@ -21,6 +21,7 @@ const config = {
 
   // 配置 React 选项
   reactStrictMode: false, // 在生产环境中禁用严格模式
+  allowedDevOrigins: ["randpick.soj.myds.me"],
 };
 
 export default config;

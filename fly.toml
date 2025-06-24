@@ -32,6 +32,10 @@ min_machines_running = 0
 port = 8090
 handlers = ['tls', 'http']
 
+[[services.http_options]]
+cors = true
+allowed_origins = ["https://randpick.fly.dev"]
+
 
 [[vm]]
 memory = '256mb'

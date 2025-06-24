@@ -67,7 +67,10 @@ echo "启动 PocketBase 服务..."
 cd pb || exit 1
 
 # 启动PocketBase服务（后台运行）
-nohup ./pocketbase serve > pocketbase.log 2>&1 &
+nohup ./pocketbase serve \
+  --http="0.0.0.0:8090" \
+  --origins="https://randpick.fly.dev,https://randpick.soj.myds.me:1443,http://localhost:3000" \
+  > pocketbase.log 2>&1 &
 PB_PID=$!
 
 # 等待服务启动

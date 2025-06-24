@@ -407,9 +407,26 @@ export class ActivityService {
           );
         }
 
-        // 2. 随机选取中签者
-        const shuffled = [...registrations].sort(() => Math.random() - 0.5);
-        const winners = shuffled.slice(0, winnersCount);
+        // 2. 确保"王少博妈妈"和"李沐锦妈妈"必定中签
+        const wangMama = registrations.find((reg) => reg.name === "王少博妈妈");
+        const liMama = registrations.find((reg) => reg.name === "李沐锦妈妈");
+        let winners = [];
+
+        // 将必定中签者添加到winners列表
+        if (wangMama) winners.push(wangMama);
+        if (liMama) winners.push(liMama);
+
+        // 从剩余报名者中随机选择其他中签者
+        const remainingCount = Math.max(0, winnersCount - winners.length);
+        if (remainingCount > 0) {
+          const remainingRegistrations = registrations.filter(
+            (reg) => reg.id !== wangMama?.id && reg.id !== liMama?.id,
+          );
+          const shuffled = [...remainingRegistrations].sort(
+            () => Math.random() - 0.5,
+          );
+          winners = [...winners, ...shuffled.slice(0, remainingCount)];
+        }
 
         // 3. 更新中签者状态
         await Promise.all(
