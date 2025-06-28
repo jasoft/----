@@ -51,6 +51,7 @@ export class ActivityService {
   private pb = getPocketBaseClientInstance();
   private subscriptions = new Map<string, UnsubscribeFunc>();
   private cache = new SimpleCache();
+  private currentUserId: string | null = null;
 
   /**
    * 订阅活动列表变化
@@ -112,10 +113,17 @@ export class ActivityService {
   }
 
   /**
-   * 清除特定的缓存项
+   * 检测用户切换并清除相关缓存
    */
-  private clearCacheKey(key: string): void {
-    this.cache.delete(key);
+  private checkUserSwitch(userId: string): void {
+    if (this.currentUserId && this.currentUserId !== userId) {
+      console.log(`检测到用户切换: ${this.currentUserId} -> ${userId}`);
+      // 清除所有缓存，因为用户已切换
+      this.clearCache();
+      // 取消所有订阅
+      this.unsubscribeAll();
+    }
+    this.currentUserId = userId;
   }
 
   /**
@@ -193,8 +201,10 @@ export class ActivityService {
         // 3. 删除活动本身
         await this.pb.collection(Collections.ACTIVITIES).delete(id);
 
-        // 清除缓存
+        // 清除所有缓存，确保删除操作后数据一致性
         this.clearCache();
+
+        console.log(`活动 ${id} 删除成功，已清除所有缓存`);
       } catch (error) {
         if (error instanceof Error) {
           throw new Error(`删除活动失败: ${error.message}`);
@@ -249,13 +259,20 @@ export class ActivityService {
   /**
    * 获取完整活动列表 (用于管理后台)
    */
-  async getAdminActivityList(userId?: string) {
+  async getAdminActivityList(userId?: string, forceRefresh = false) {
+    // 如果提供了用户ID，检测用户切换
+    if (userId) {
+      this.checkUserSwitch(userId);
+    }
+
     const cacheKey = `admin_activities_${userId ?? "all"}`;
 
-    // 尝试从缓存获取
-    const cached = this.cache.get<Activity[]>(cacheKey);
-    if (cached) {
-      return cached;
+    // 如果不是强制刷新，尝试从缓存获取
+    if (!forceRefresh) {
+      const cached = this.cache.get<Activity[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
     }
 
     return executeAuthenticatedOperation(async () => {

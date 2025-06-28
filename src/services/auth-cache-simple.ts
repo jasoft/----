@@ -7,6 +7,30 @@ import type { User } from "@clerk/nextjs/server";
 const userCache = new Map<string, { user: User; timestamp: number }>();
 const MEMORY_CACHE_DURATION = 5 * 60 * 1000; // 5分钟内存缓存
 
+// 当前用户ID跟踪
+let currentUserId: string | null = null;
+
+/**
+ * 检测用户切换
+ */
+function checkUserSwitch(user: User): void {
+  if (currentUserId && currentUserId !== user.id) {
+    console.log(`检测到用户切换: ${currentUserId} -> ${user.id}`);
+    // 清除所有缓存，因为用户已切换
+    userCache.clear();
+
+    // 通知其他模块用户已切换
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("userSwitched", {
+          detail: { oldUserId: currentUserId, newUserId: user.id },
+        }),
+      );
+    }
+  }
+  currentUserId = user.id;
+}
+
 /**
  * 获取缓存的当前用户信息
  * 使用内存缓存优化性能
@@ -17,6 +41,8 @@ export async function getCachedCurrentUser(): Promise<User | null> {
     const memoryUser = getFromMemoryCache();
     if (memoryUser) {
       console.log("从内存缓存获取用户信息");
+      // 检测用户切换
+      checkUserSwitch(memoryUser);
       return memoryUser;
     }
 
@@ -29,6 +55,8 @@ export async function getCachedCurrentUser(): Promise<User | null> {
     console.log(`Clerk API 调用耗时: ${(endTime - startTime).toFixed(2)}ms`);
 
     if (user) {
+      // 检测用户切换
+      checkUserSwitch(user);
       // 更新内存缓存
       setMemoryCache(user);
     }

@@ -11,7 +11,7 @@ import { isExpired } from "~/lib/utils";
 
 interface ManageActivityListProps {
   activities: Activity[];
-  onDeleted?: () => void;
+  onDeleted?: (forceRefresh?: boolean) => void;
 }
 
 export function ManageActivityList({
@@ -31,7 +31,8 @@ export function ManageActivityList({
       try {
         await activityService.deleteActivity(activity.id);
         showToast(`活动"${activity.title}"已删除`, "success");
-        onDeleted?.();
+        // 删除成功后强制刷新，确保界面更新
+        onDeleted?.(true);
       } catch (error) {
         console.error("Delete activity error:", error);
 
@@ -41,7 +42,8 @@ export function ManageActivityList({
           if (clientError.status === 404) {
             // 如果活动已经不存在，也算删除成功
             showToast(`活动"${activity.title}"已删除`, "success");
-            onDeleted?.();
+            // 删除成功后强制刷新，确保界面更新
+            onDeleted?.(true);
             return;
           }
         }
@@ -63,7 +65,8 @@ export function ManageActivityList({
         `活动已${activity.isPublished ? "取消发布" : "发布"}`,
         "success",
       );
-      onDeleted?.();
+      // 状态更新后强制刷新，确保界面更新
+      onDeleted?.(true);
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : "状态更新失败",
@@ -105,7 +108,8 @@ export function ManageActivityList({
 
       await activityService.drawWinners(activity.id);
       showToast(hasDrawn ? "已重新抽签" : "抽签完成", "success");
-      onDeleted?.();
+      // 抽签完成后强制刷新，确保界面更新
+      onDeleted?.(true);
 
       // 在新窗口打开结果页面
       window.open(

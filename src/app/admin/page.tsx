@@ -7,6 +7,13 @@ import { type Activity } from "~/lib/pb";
 import { ManageActivityList } from "~/components/manage-activity-list";
 import { activityService } from "~/services/activity";
 
+interface AdminActivitiesResponse {
+  success: boolean;
+  activities: Activity[];
+  userId: string;
+  error?: string;
+}
+
 type SortField = "created" | "deadline" | "registrations" | "title";
 type SortOrder = "asc" | "desc";
 type FilterStatus = "all" | "active" | "ended";
@@ -27,27 +34,53 @@ export default function AdminPage(): ReactElement {
     setIsFilterVisible((prev) => !prev);
   }, []);
 
-  const loadActivities = useCallback(async () => {
+  const loadActivities = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     setError(null);
 
     const startTime = performance.now();
 
     try {
-      // 直接调用 activityService，不使用 Server Action
-      const activities = await activityService.getAdminActivityList();
-      setActivities(activities);
+      // 调用安全的 API 路由，确保只获取当前用户的活动
+      // 添加缓存控制头，确保获取最新数据
+      const url = forceRefresh
+        ? "/api/admin/activities?refresh=true"
+        : "/api/admin/activities";
+      const response = await fetch(url, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("用户未登录或登录已过期");
+        }
+        throw new Error(`请求失败: ${response.status}`);
+      }
+
+      const data = (await response.json()) as AdminActivitiesResponse;
+
+      if (!data.success) {
+        throw new Error(data.error ?? "获取活动列表失败");
+      }
+
+      setActivities(data.activities);
 
       const endTime = performance.now();
       console.log(`活动列表加载耗时: ${(endTime - startTime).toFixed(2)}ms`);
+      console.log(`当前用户ID: ${data.userId}`);
     } catch (err) {
       console.error("加载活动列表失败:", err);
       let errorMessage = "加载活动列表失败";
       if (err instanceof Error) {
-        if (err.message.includes("network")) {
+        if (err.message.includes("network") || err.message.includes("fetch")) {
           errorMessage = "网络连接失败，请检查网络后重试";
         } else if (err.message.includes("timeout")) {
           errorMessage = "请求超时，请稍后重试";
+        } else if (err.message.includes("未登录")) {
+          errorMessage = "用户未登录，请重新登录";
         } else {
           errorMessage = `加载失败: ${err.message}`;
         }
@@ -61,6 +94,23 @@ export default function AdminPage(): ReactElement {
   // 初始加载
   useEffect(() => {
     void loadActivities();
+  }, [loadActivities]);
+
+  // 监听用户切换事件
+  useEffect(() => {
+    const handleUserSwitch = (event: CustomEvent) => {
+      console.log("检测到用户切换，重新加载活动列表", event.detail);
+      void loadActivities();
+    };
+
+    window.addEventListener("userSwitched", handleUserSwitch as EventListener);
+
+    return () => {
+      window.removeEventListener(
+        "userSwitched",
+        handleUserSwitch as EventListener,
+      );
+    };
   }, [loadActivities]);
 
   // 延迟设置实时订阅，避免影响初始加载性能
